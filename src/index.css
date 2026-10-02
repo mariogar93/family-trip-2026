@@ -1,0 +1,181 @@
+@import "tailwindcss";
+
+@custom-variant light (&:is([data-theme="light"] *, .light *));
+@custom-variant dark (&:is([data-theme="dark"] *, .dark *));
+
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+
+  /* Dark Theme (Default) - Deep Obsidian Midnight & Neon Coral with Atmospheric Gradients */
+  --bg-page: #0b0e17;
+  --bg-page-soft: #0f131e;
+  --bg-surface: #131722;
+  --bg-surface-elevated: #181d2a;
+  --bg-surface-glass: rgba(19, 23, 34, 0.70);
+  --border-subtle: #1e2538;
+  --border-coral: rgba(255, 59, 104, 0.4);
+  --text-main: #ffffff;
+  --text-muted: #7886a0;
+  --accent-coral: #ff3b68;
+  --accent-coral-glow: rgba(255, 59, 104, 0.35);
+  --shadow-dock: 0 16px 40px -4px rgba(0, 0, 0, 0.85), 0 0 24px -2px rgba(255, 59, 104, 0.22);
+  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="light"],
+body.light {
+  /* Light Theme - Clean Modern Travel Journal */
+  --bg-page: #f6f8fc;
+  --bg-page-soft: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f1f4f9;
+  --bg-surface-glass: rgba(255, 255, 255, 0.80);
+  --border-subtle: #e2e8f0;
+  --border-coral: rgba(255, 64, 113, 0.4);
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --accent-coral: #ff4071;
+  --accent-coral-glow: rgba(255, 64, 113, 0.2);
+  --shadow-dock: 0 16px 36px -4px rgba(0, 0, 0, 0.12), 0 0 18px -2px rgba(255, 64, 113, 0.15);
+  --shadow-card: 0 2px 12px -2px rgba(0, 0, 0, 0.06);
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Urbanist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1rem;
+  line-height: 1.45;
+  background-color: var(--bg-page);
+  background-image: 
+    radial-gradient(circle at 12% 5%, rgba(255, 59, 104, 0.13) 0%, transparent 42%),
+    radial-gradient(circle at 88% 25%, rgba(13, 148, 136, 0.06) 0%, transparent 35%),
+    radial-gradient(circle at 50% 75%, rgba(245, 158, 11, 0.04) 0%, transparent 45%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  color: var(--text-main);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body.light {
+  background-image: 
+    radial-gradient(circle at 12% 5%, rgba(255, 64, 113, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 88% 25%, rgba(13, 148, 136, 0.04) 0%, transparent 35%),
+    #f6f8fc;
+}
+
+/* Adaptive Glassmorphic Surfaces */
+.glass-panel {
+  background: var(--bg-surface-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
+}
+
+.glass-panel-interactive {
+  background: var(--bg-surface-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-interactive:active {
+  transform: scale(0.98);
+  border-color: var(--accent-emerald);
+}
+
+/* Universal Theme Adapters */
+.app-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  box-shadow: var(--shadow-card);
+}
+
+.app-card-subtle {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+}
+
+.app-input {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.app-input:focus {
+  border-color: var(--accent-emerald);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-emerald-glow);
+}
+
+/* Custom smooth scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.4);
+}
+
+/* Hide scrollbar on horizontal swipeable rows */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe area paddings */
+.pt-safe {
+  padding-top: max(0.75rem, var(--sat));
+}
+.pb-safe {
+  /* Fits the floating dock cleanly without excessive empty space */
+  padding-bottom: max(5.25rem, calc(var(--sab) + 4.5rem));
+}
+.bottom-dock {
+  bottom: max(0.85rem, var(--sab));
+}
+
+/* Float animation for mascot */
+@keyframes pet-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-5px) rotate(1.5deg); }
+}
+
+.animate-pet {
+  animation: pet-float 3s ease-in-out infinite;
+}
+
+/* Shimmer glow */
+@keyframes emerald-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+}
+
+.animate-emerald-pulse {
+  animation: emerald-pulse 2.2s infinite ease-in-out;
+}
