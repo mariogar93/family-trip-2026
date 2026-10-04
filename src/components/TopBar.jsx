@@ -84,7 +84,7 @@ export default function TopBar({
       setAdminPinInput('');
       setAdminError('');
     } else {
-      setAdminError('PIN de organizador incorrecto (por defecto es 2026)');
+      setAdminError('PIN de organizador incorrecto');
     }
   };
 
@@ -431,60 +431,58 @@ export default function TopBar({
               </div>
             </div>
 
-            {/* Traveler Management: Normal Mode vs Admin Mode */}
+            {/* Traveler Management: Switcher & Admin actions */}
             <div className="pt-3 border-t border-zinc-200 dark:border-[#21283b] space-y-2.5">
-              {isAdmin ? (
-                <>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-zinc-700 dark:text-zinc-400 flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-[#ff4071]" /> Gestión de Viajeros (Admin):
-                    </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-zinc-700 dark:text-zinc-400 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-[#ff4071]" /> Viajeros del Viaje:
+                </label>
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      setShowProfileModal(false);
+                      onOpenCreateMember();
+                    }}
+                    className="text-[11px] font-bold text-[#ff4071] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <UserPlus className="w-3 h-3" /> + Nuevo Viajero
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                {members.map((m) => (
+                  <div key={m.id} className="flex items-center gap-1">
                     <button
                       onClick={() => {
+                        onSwitchMember(m);
                         setShowProfileModal(false);
-                        onOpenCreateMember();
                       }}
-                      className="text-[11px] font-bold text-[#ff4071] hover:underline flex items-center gap-1 cursor-pointer"
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
+                        m.id === activeMember.id
+                          ? 'border-[#ff4071] bg-[#ff4071]/20 text-zinc-900 dark:text-white font-bold shadow-sm'
+                          : 'border-zinc-200 dark:border-[#21283b] bg-zinc-100 dark:bg-[#0b0d14] text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700'
+                      }`}
                     >
-                      <UserPlus className="w-3 h-3" /> + Nuevo Viajero
+                      <PetAvatar petType={m.pet_type} size="xs" />
+                      <span>{m.name}</span>
                     </button>
+                    {isAdmin && members.length > 1 && (
+                      <button
+                        onClick={() => {
+                          if (confirm(`¿Eliminar viajero "${m.name}"?`)) {
+                            onDeleteMember(m.id);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 cursor-pointer"
+                        title="Eliminar viajero"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
-
-                  <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                    {members.map((m) => (
-                      <div key={m.id} className="flex items-center gap-1">
-                        <button
-                          onClick={() => {
-                            onSwitchMember(m);
-                            setShowProfileModal(false);
-                          }}
-                          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
-                            m.id === activeMember.id
-                              ? 'border-[#ff4071] bg-[#ff4071]/20 text-zinc-900 dark:text-white font-bold'
-                              : 'border-zinc-200 dark:border-[#21283b] bg-zinc-100 dark:bg-[#0b0d14] text-zinc-700 dark:text-zinc-300'
-                          }`}
-                        >
-                          <PetAvatar petType={m.pet_type} size="xs" />
-                          <span>{m.name}</span>
-                        </button>
-                        {members.length > 1 && (
-                          <button
-                            onClick={() => {
-                              if (confirm(`¿Eliminar viajero "${m.name}"?`)) {
-                                onDeleteMember(m.id);
-                              }
-                            }}
-                            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 cursor-pointer"
-                            title="Eliminar viajero"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : null}
+                ))}
+              </div>
 
               {/* Salir al inicio button to return to member selection */}
               <button

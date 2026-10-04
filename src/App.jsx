@@ -129,16 +129,8 @@ export default function App() {
 
       // If active member was saved but not found in members, clear
       if (activeMemberId && !resMembers.some(m => String(m.id) === String(activeMemberId))) {
-        if (resMembers.length > 0) {
-          setActiveMemberId(String(resMembers[0].id));
-          localStorage.setItem('active_member_id', String(resMembers[0].id));
-        } else {
-          setActiveMemberId(null);
-          localStorage.removeItem('active_member_id');
-        }
-      } else if (!activeMemberId && resMembers.length === 1) {
-        setActiveMemberId(String(resMembers[0].id));
-        localStorage.setItem('active_member_id', String(resMembers[0].id));
+        setActiveMemberId(null);
+        localStorage.removeItem('active_member_id');
       }
     } catch (err) {
       console.error('Error cargando datos:', err);
@@ -160,7 +152,19 @@ export default function App() {
     setIsAuthenticated(true);
   };
 
+  const handleLogoutFamily = () => {
+    localStorage.removeItem('family_auth');
+    localStorage.removeItem('active_member_id');
+    setIsAuthenticated(false);
+    setActiveMemberId(null);
+  };
+
   const handleSelectMember = (member) => {
+    if (!member) {
+      localStorage.removeItem('active_member_id');
+      setActiveMemberId(null);
+      return;
+    }
     localStorage.setItem('active_member_id', String(member.id));
     setActiveMemberId(String(member.id));
   };
@@ -457,6 +461,7 @@ export default function App() {
     <AuthGate
       isAuthenticated={isAuthenticated}
       onAuthenticate={handleAuthenticate}
+      onLogoutFamily={handleLogoutFamily}
       members={members}
       activeMember={activeMember}
       onSelectMember={handleSelectMember}

@@ -1,10 +1,28 @@
 import React, { useState } from 'react';
-import { Lock, Sparkles, UserPlus, KeyRound, ChevronRight, Check, Zap, Heart, Compass, Sparkle, Trash2 } from 'lucide-react';
+import { 
+  Lock, 
+  Sparkles, 
+  UserPlus, 
+  KeyRound, 
+  ChevronRight, 
+  Check, 
+  Zap, 
+  Heart, 
+  Compass, 
+  Sparkle, 
+  Trash2, 
+  Eye, 
+  EyeOff, 
+  ArrowLeft, 
+  Users, 
+  LogOut 
+} from 'lucide-react';
 import PetAvatar, { PET_DATA } from './PetAvatar';
 
 export default function AuthGate({ 
   isAuthenticated, 
   onAuthenticate, 
+  onLogoutFamily,
   members, 
   activeMember, 
   onSelectMember, 
@@ -15,6 +33,7 @@ export default function AuthGate({
   children 
 }) {
   const [passcode, setPasscode] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showAddMember, setShowAddMember] = useState(showCreateModalExplicit);
@@ -58,10 +77,10 @@ export default function AuthGate({
       if (res.ok && data.success) {
         onAuthenticate();
       } else {
-        setError(data.message || 'Código incorrecto. Pide la clave familiar (por defecto: viaje2026).');
+        setError(data.message || 'Contraseña incorrecta. Consulta con el organizador del viaje.');
       }
     } catch (err) {
-      setError('Error al verificar código. Revisa la conexión.');
+      setError('Error al verificar contraseña. Revisa la conexión.');
     } finally {
       setLoading(false);
     }
@@ -115,20 +134,29 @@ export default function AuthGate({
           <h1 className="text-2xl font-black text-white tracking-tight">Aventura Familiar 2026</h1>
           <p className="text-xs text-emerald-400 font-bold uppercase tracking-wider mt-1">Portal Privado de Viaje</p>
           <p className="text-sm text-zinc-400 mt-3">
-            Ingresa el código familiar para acceder al itinerario, bingo de comidas y retos.
+            Ingresa la contraseña familiar para acceder al itinerario, bingo de comidas y retos.
           </p>
 
           <form onSubmit={handlePasscodeSubmit} className="mt-6 space-y-4">
             <div className="relative">
               <input
-                type="text"
+                type={showPassword ? 'text' : 'password'}
                 autoCapitalize="none"
-                placeholder="Código de la familia (ej: viaje2026)"
+                placeholder="Contraseña familiar"
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
-                className="w-full px-4 py-3.5 pl-11 bg-zinc-900 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all"
+                className="w-full px-4 py-3.5 pl-11 pr-11 bg-zinc-900 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all"
               />
-              <KeyRound className="w-5 h-5 text-emerald-400 absolute left-3.5 top-3.5" />
+              <KeyRound className="w-5 h-5 text-emerald-400 absolute left-3.5 top-3.5 pointer-events-none" />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-3.5 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
 
             {error && (
@@ -171,17 +199,35 @@ export default function AuthGate({
     // Character Creation Form: JUST NAME & PET
     if (showAddMember || isFirstTime) {
       return (
-        <div className="min-h-screen bg-black text-zinc-100 flex flex-col items-center justify-center p-3 sm:p-4">
+        <div className="min-h-screen bg-black text-zinc-100 flex flex-col items-center justify-center p-3 sm:p-4 selection:bg-emerald-500 selection:text-black">
           <div className="w-full max-w-md bg-zinc-950/90 backdrop-blur-2xl rounded-3xl p-5 sm:p-6 border border-emerald-500/30 shadow-2xl max-h-[92vh] overflow-y-auto">
-            <div className="text-center mb-4">
+            
+            {/* Header with back button to picker if members exist */}
+            <div className="relative text-center mb-4">
+              {!isFirstTime && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddMember(false);
+                    if (onCloseCreateModal) onCloseCreateModal();
+                  }}
+                  className="absolute left-0 top-0 p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold"
+                  title="Volver a lista de perfiles"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Perfiles</span>
+                </button>
+              )}
               <div className="inline-flex p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mb-2">
                 <Sparkle className="w-5 h-5" />
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-white">
-                {isFirstTime ? '¡Crea tu Perfil de Viajero!' : 'Nuevo Integrante del Viaje'}
+                {isFirstTime ? '¡Crea el Primer Perfil de Viajero!' : 'Nuevo Integrante del Viaje'}
               </h2>
-              <p className="text-xs text-zinc-400 mt-1">
-                Escribe tu nombre y elige la Mascota de Viaje que te acompañará.
+              <p className="text-xs text-zinc-400 mt-1 max-w-xs mx-auto">
+                {isFirstTime
+                  ? 'Sé el primero en unirte a la aventura familiar. Escribe tu nombre y elige tu mascota de viaje.'
+                  : 'Escribe tu nombre y elige la Mascota de Viaje única que te acompañará.'}
               </p>
             </div>
 
@@ -203,7 +249,7 @@ export default function AuthGate({
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
-                    <Compass className="w-3.5 h-3.5 text-emerald-400" /> Elige tu Mascota
+                    <Compass className="w-3.5 h-3.5 text-emerald-400" /> Elige tu Mascota (Única)
                   </label>
                   <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
                     {currentSelectedPet.badge}
@@ -305,7 +351,7 @@ export default function AuthGate({
                     }}
                     className="flex-1 py-2.5 px-3 rounded-xl border border-zinc-700 text-xs font-bold text-zinc-400 hover:text-white hover:bg-zinc-800 cursor-pointer"
                   >
-                    Volver
+                    ← Volver a Perfiles
                   </button>
                 )}
                 <button
@@ -328,9 +374,9 @@ export default function AuthGate({
         <div className="w-full max-w-md bg-zinc-950/90 backdrop-blur-2xl rounded-3xl p-6 shadow-2xl border border-emerald-500/25">
           <div className="text-center mb-6">
             <span className="text-4xl">👋</span>
-            <h2 className="text-2xl font-black text-white mt-2">¿Quién está usando este teléfono?</h2>
+            <h2 className="text-2xl font-black text-white mt-2">¿Quién está usando la app?</h2>
             <p className="text-xs text-zinc-400 mt-1">
-              Selecciona tu perfil para que tus actividades, retos y mascota queden a tu nombre.
+              Selecciona tu perfil de viajero o crea uno nuevo para unirte al viaje.
             </p>
           </div>
 
@@ -339,33 +385,48 @@ export default function AuthGate({
               {members.map((member) => (
                 <div
                   key={member.id}
-                  className="w-full glass-panel-interactive rounded-2xl p-3 flex items-center justify-between group border border-zinc-800 hover:border-emerald-500/50 hover:bg-zinc-900 cursor-pointer"
+                  className="w-full glass-panel-interactive rounded-2xl p-3.5 flex items-center justify-between group border border-zinc-800 hover:border-emerald-500/50 hover:bg-zinc-900 cursor-pointer transition-all active:scale-[0.99]"
                   onClick={() => onSelectMember(member)}
                 >
                   <div className="flex items-center gap-3">
                     <PetAvatar petType={member.pet_type} accessory={member.pet_accessory} level={member.pet_level} size="sm" />
                     <div className="text-left">
-                      <div className="font-bold text-sm text-white">
+                      <div className="font-bold text-base text-white group-hover:text-emerald-300 transition-colors">
                         {member.name}
                       </div>
-                      <div className="text-[11px] text-emerald-400 flex items-center gap-1 mt-0.5">
-                        <span>{member.pet_name}</span>
+                      <div className="text-[11px] text-emerald-400 flex items-center gap-1.5 mt-0.5">
+                        <span className="font-semibold">{member.pet_name}</span>
                         <span className="text-zinc-600">•</span>
-                        <span>{member.pet_xp} XP</span>
+                        <span className="text-zinc-400">Nv. {member.pet_level || 1} ({member.pet_xp || 0} XP)</span>
                       </div>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
+                  <div className="flex items-center gap-1 text-xs font-bold text-zinc-500 group-hover:text-emerald-400 transition-colors">
+                    <span>Entrar</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </div>
                 </div>
               ))}
             </div>
 
             <button
               onClick={() => setShowAddMember(true)}
-              className="w-full mt-4 py-3 px-4 rounded-2xl border border-dashed border-emerald-500/40 hover:border-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="w-full mt-4 py-3.5 px-4 rounded-2xl border border-dashed border-emerald-500/40 hover:border-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <UserPlus className="w-4 h-4" /> + Crear Nuevo Perfil de Viajero
             </button>
+
+            {onLogoutFamily && (
+              <div className="pt-3 border-t border-zinc-900 text-center">
+                <button
+                  type="button"
+                  onClick={onLogoutFamily}
+                  className="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <LogOut className="w-3 h-3" /> Bloquear app / Cambiar contraseña
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
