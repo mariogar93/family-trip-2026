@@ -148,6 +148,12 @@ app.post('/api/members/reset', (req, res) => {
 app.put('/api/members/:id/pet', (req, res) => {
   const { id } = req.params;
   const { pet_name, pet_type, pet_accessory } = req.body;
+  if (pet_type) {
+    const existingPet = db.prepare('SELECT id, name FROM members WHERE pet_type = ? AND id != ?').get(pet_type, id);
+    if (existingPet) {
+      return res.status(400).json({ error: `La mascota ya fue elegida por ${existingPet.name}. Por favor elige una diferente.` });
+    }
+  }
   db.prepare(`
     UPDATE members 
     SET pet_name = COALESCE(?, pet_name),
