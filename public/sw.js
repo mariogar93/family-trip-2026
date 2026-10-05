@@ -1,24 +1,16 @@
-const CACHE_NAME = 'family-trip-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest'
-];
+const CACHE_NAME = 'family-trip-v2';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
+  // Activate immediately without waiting
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+  // Delete all old caches immediately
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.map((key) => caches.delete(key))
       );
     })
   );
@@ -26,21 +18,36 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Pass API calls directly to network, cache shell assets
-  if (event.request.url.includes('/api/') || event.request.method !== 'GET') {
+  // Pass API requests and uploads straight to network
+  if (
+    event.request.url.includes('/api/') || 
+    event.request.url.includes('/uploads/') || 
+    event.request.method !== 'GET'
+  ) {
     return;
   }
 
+  // Network-First for HTML/navigation requests so browser always receives current build
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/index.html')))
+    );
+    return;
+  }
+
+  // For static assets: try network first, then cache
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return (
-        cached ||
-        fetch(event.request).catch(() => {
-          if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-        })
-      );
-    })
+    fetch(event.request)
+      .then((response) => {
+        if (response && response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

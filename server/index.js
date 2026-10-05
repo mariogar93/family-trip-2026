@@ -1478,8 +1478,30 @@ app.get('/api/feed', (req, res) => {
 // In production, serve the built SPA from dist/
 const distPath = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, {
+    maxAge: '1h',
+    setHeaders: (res, filePath) => {
+      // NEVER cache index.html or sw.js so new deployments are fetched immediately
+      if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      } else if (filePath.includes(path.sep + 'assets' + path.sep) || filePath.includes('/assets/')) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  }));
+
+  // SPA fallback: ONLY for navigation / HTML routes!
+  // If an asset (.js, .css, .png, etc.) is missing, return 404 instead of index.html
   app.get('*', (req, res) => {
+    const ext = path.extname(req.path);
+    if (ext && ext !== '.html') {
+      return res.status(404).type('text/plain').send('Asset not found');
+    }
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
