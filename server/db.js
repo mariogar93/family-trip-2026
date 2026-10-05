@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { REAL_DAYS, REAL_ACTIVITIES, REAL_PLACES, REAL_TRANSITS, REAL_LODGINGS } from './seeds.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -370,139 +371,112 @@ try {
   updateHint.run('Plato fuerte tradicional', '%Trattoria%');
 } catch (e) {}
 
-// Seed transits if empty
+// ----------------- SYNCHRONIZE REAL TRIP DATA (15 DÍAS: 21 NOV - 5 DIC 2026) -----------------
 try {
-  const transitsCount = db.prepare('SELECT COUNT(*) as count FROM transits').get().count;
-  if (transitsCount === 0) {
+  // 1. Settings
+  const upsertSetting = db.prepare(`
+    INSERT INTO settings (key, value) VALUES (?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = ?
+  `);
+  upsertSetting.run('trip_title', 'Viaje SuperMegaColosal España', 'Viaje SuperMegaColosal España');
+  upsertSetting.run('trip_dates', '21 Nov - 5 Dic 2026', '21 Nov - 5 Dic 2026');
+  upsertSetting.run('trip_destination', 'España & Italia', 'España & Italia');
+  upsertSetting.run('currency_symbol', '€', '€');
+  const checkPass = db.prepare('SELECT value FROM settings WHERE key = ?').get('family_passcode');
+  if (!checkPass) upsertSetting.run('family_passcode', 'viaje2026', 'viaje2026');
+  const checkPin = db.prepare('SELECT value FROM settings WHERE key = ?').get('admin_pin');
+  if (!checkPin) upsertSetting.run('admin_pin', '2026', '2026');
+
+  // 2. Check if database has old dummy dates ('12 Oct', '%Oct%') or incomplete itinerary
+  const hasOctDays = db.prepare("SELECT COUNT(*) as count FROM itinerary_days WHERE date_str LIKE '%Oct%' OR date_str = '12 Oct'").get().count > 0;
+  const daysTotal = db.prepare("SELECT COUNT(*) as count FROM itinerary_days").get().count;
+
+  if (hasOctDays || daysTotal < 15) {
+    console.log('🔄 Sincronizando los 15 días reales del viaje (Nov 21 - Dic 5, 2026)...');
+    db.prepare("DELETE FROM itinerary_activities").run();
+    db.prepare("DELETE FROM itinerary_days").run();
+    db.prepare("DELETE FROM transits").run();
+    db.prepare("DELETE FROM places WHERE date_str LIKE '%Oct%'").run();
+
+    const insertDay = db.prepare(`
+      INSERT INTO itinerary_days (day_number, city, city_to, is_transfer, title, date_str, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const dayIds = {};
+    for (const d of REAL_DAYS) {
+      const res = insertDay.run(d.day_number, d.city, d.city_to || null, d.is_transfer || 0, d.title, d.date_str, d.notes || '');
+      dayIds[d.day_number] = res.lastInsertRowid;
+    }
+
+    const insertAct = db.prepare(`
+      INSERT INTO itinerary_activities (day_id, time_str, title, location, notes, status)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    for (const a of REAL_ACTIVITIES) {
+      const targetDayId = dayIds[a.day_number];
+      if (targetDayId) {
+        insertAct.run(targetDayId, a.time_str, a.title, a.location || '', a.notes || '', a.status || 'pending');
+      }
+    }
+
+    const insertPlace = db.prepare(`
+      INSERT INTO places (title, date_str, maps_url, visited, category, description, location, day_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const p of REAL_PLACES) {
+      const targetDayId = p.day_number ? dayIds[p.day_number] : null;
+      insertPlace.run(p.title, p.date_str || '', p.maps_url || null, 0, p.category || 'Atracción', p.description || '', p.location || '', targetDayId);
+    }
+
     const insertTransit = db.prepare(`
       INSERT INTO transits (day_id, date_str, type, origin, origin_time, destination, destination_time, notes)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    insertTransit.run(1, '12 Oct', 'flight', 'MAD Madrid', '09:25 AM', 'BCN Barcelona', '10:45 AM', 'Vuelo IB3012');
-    insertTransit.run(3, '14 Oct', 'train', 'BCN Sants', '08:45 AM', 'MAD Atocha', '11:30 AM', 'AVE Alta Velocidad');
-  }
-} catch (e) {}
+    for (const t of REAL_TRANSITS) {
+      const targetDayId = dayIds[t.day_number];
+      insertTransit.run(targetDayId, t.date_str, t.type, t.origin, t.origin_time, t.destination, t.destination_time, t.notes);
+    }
+  } else {
+    // Purge any lingering mock Oct transits
+    db.prepare("DELETE FROM transits WHERE date_str LIKE '%Oct%' OR origin LIKE '%MAD Madrid%'").run();
+    
+    // Ensure all 5 legs of transits exist
+    const allDays = db.prepare("SELECT id, day_number FROM itinerary_days").all();
+    const dayMap = {};
+    allDays.forEach(d => { dayMap[d.day_number] = d.id; });
 
-// Seed lodgings / Airbnbs if empty
-try {
-  const lodgingsCount = db.prepare('SELECT COUNT(*) as count FROM lodgings').get().count;
+    const insertTransit = db.prepare(`
+      INSERT INTO transits (day_id, date_str, type, origin, origin_time, destination, destination_time, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const t of REAL_TRANSITS) {
+      const exists = db.prepare("SELECT id FROM transits WHERE date_str = ?").get(t.date_str);
+      if (!exists) {
+        insertTransit.run(dayMap[t.day_number] || null, t.date_str, t.type, t.origin, t.origin_time, t.destination, t.destination_time, t.notes);
+      }
+    }
+  }
+
+  // 3. Lodgings (Airbnbs & Hoteles)
+  db.prepare("DELETE FROM lodgings WHERE check_in_date LIKE '%Oct%'").run();
+  const lodgingsCount = db.prepare("SELECT COUNT(*) as count FROM lodgings").get().count;
   if (lodgingsCount === 0) {
     const insertLodging = db.prepare(`
       INSERT INTO lodgings (city, name, address, maps_url, check_in_date, check_in_time, check_out_date, check_out_time, door_code, wifi_name, wifi_pass, host_name, host_phone, notes)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-
-    insertLodging.run(
-      'Madrid',
-      'Plaza España & Palacio: Confort, nuevo y amplio',
-      'Calle del Reloj, 6, Madrid',
-      'https://maps.app.goo.gl/X5xMD33n2aeG8ksB7',
-      '2026-11-22',
-      '15:00',
-      '2026-11-25',
-      '11:00',
-      'Confirmación: HM3TFT5CFF (4 huéspedes)',
-      'Ver en app Airbnb',
-      'Ver en app Airbnb',
-      'Dani Y Lucia',
-      '',
-      'Plaza España & Palacio: Confort, nuevo y amplio. Anfitrión: Dani Y Lucia. Instrucciones y reglas en el manual de la casa.'
-    );
-
-    insertLodging.run(
-      'Roma',
-      'Re di Roma House',
-      'Via Tuscolana, 44, Roma',
-      'https://maps.app.goo.gl/D3Wy1DbLAP8xgiSAA',
-      '2026-11-25',
-      '16:00',
-      '2026-11-30',
-      '10:00',
-      'Confirmación: HMA32Y993J (4 huéspedes)',
-      'Ver en app Airbnb',
-      'Ver en app Airbnb',
-      'Michela',
-      '',
-      'Re di Roma House. Anfitrión: Michela. Instrucciones y reglas en el manual de la casa.'
-    );
-
-    insertLodging.run(
-      'Barcelona',
-      'Pool, Terrace & Beach Vibes in Poblenou',
-      'Carrer de Lope de Vega, 150, Barcelona',
-      'https://maps.app.goo.gl/dZNXVKB7AMGvCFHB6',
-      '2026-11-30',
-      '17:00',
-      '2026-12-04',
-      '11:00',
-      'Confirmación: HM3RKTWCM3 (4 huéspedes)',
-      'Ver en app Airbnb',
-      'Ver en app Airbnb',
-      'Nina',
-      '',
-      'Pool, Terrace & Beach Vibes in Poblenou. Anfitrión: Nina. Consejos de seguridad en el agua disponibles en la app de Airbnb.'
-    );
-
-    insertLodging.run(
-      'Madrid',
-      'ibis Styles Madrid Airport Valdebebas',
-      'C/ Fernando Higueras 55 - 28055 Madrid, Spain',
-      'https://maps.app.goo.gl/f5WED98w5oPb9uwt5',
-      '2026-12-04',
-      '15:00',
-      '2026-12-05',
-      '12:00',
-      'Reserva Nº: QQWPGNKX',
-      'ibis_Styles_Guest',
-      'Sin clave (Portal web del hotel)',
-      'Recepción ibis Styles 24h',
-      '+34 91/9432329',
-      'ibis Styles Madrid Airport Valdebebas. Email: HC0U5@ACCOR.COM | Tel: +34 91/9432329 | Hotel cerca del aeropuerto Barajas para vuelo de regreso. Recepción 24h.'
-    );
+    for (const l of REAL_LODGINGS) {
+      insertLodging.run(
+        l.city, l.name, l.address, l.maps_url,
+        l.check_in_date, l.check_in_time, l.check_out_date, l.check_out_time,
+        l.door_code, l.wifi_name, l.wifi_pass, l.host_name, l.host_phone, l.notes
+      );
+    }
   }
-} catch (e) {}
-
-// Seed default settings if empty
-const checkSetting = db.prepare('SELECT value FROM settings WHERE key = ?');
-if (!checkSetting.get('family_passcode')) {
-  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('family_passcode', 'viaje2026');
-  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('admin_pin', '2026');
-  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('trip_title', 'Aventura Familiar 2026 ✈️');
-  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('trip_dates', 'Octubre 2026');
-  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('trip_destination', 'España & Italia');
-  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('currency_symbol', '€');
-} else {
-  // Update destination to España & Italia
-  db.prepare("UPDATE settings SET value = 'España & Italia' WHERE key = 'trip_destination'").run();
-}
-
-// Seed Itinerary Days if empty
-const dayCount = db.prepare('SELECT COUNT(*) as count FROM itinerary_days').get().count;
-if (dayCount === 0) {
-  const insertDay = db.prepare('INSERT INTO itinerary_days (day_number, city, city_to, is_transfer, title, date_str, notes) VALUES (?, ?, ?, ?, ?, ?, ?)');
-  const d1 = insertDay.run(1, 'Madrid', null, 0, 'Madrid', '12 Oct', '').lastInsertRowid;
-  const d2 = insertDay.run(2, 'Madrid', null, 0, 'Madrid', '13 Oct', '').lastInsertRowid;
-  const d3 = insertDay.run(3, 'Madrid', 'Roma', 1, 'Madrid ➔ Roma', '14 Oct', 'Día de vuelo/traslado').lastInsertRowid;
-  const d4 = insertDay.run(4, 'Roma', null, 0, 'Roma', '15 Oct', '').lastInsertRowid;
-
-  const insertAct = db.prepare('INSERT INTO itinerary_activities (day_id, time_str, title, location, notes, status) VALUES (?, ?, ?, ?, ?, ?)');
-  insertAct.run(d1, '10:00 AM', 'Llegada y Check-in', 'Centro de Madrid', '', 'pending');
-  insertAct.run(d1, '01:30 PM', 'Comida en Mercado de San Miguel', 'Plaza Mayor', '', 'pending');
-  insertAct.run(d2, '10:30 AM', 'Paseo por el Parque del Retiro', 'El Retiro', '', 'pending');
-  insertAct.run(d3, '09:00 AM', 'Vuelo Madrid a Roma', 'Aeropuerto Barajas / Fiumicino', 'Pasaportes listos', 'pending');
-  insertAct.run(d3, '06:00 PM', 'Cena de bienvenida en Trastevere', 'Piazza di Santa Maria in Trastevere', '', 'pending');
-  insertAct.run(d4, '10:00 AM', 'Tour por el Coliseo y Foro Romano', 'Colosseo', '', 'pending');
-}
-
-// Seed Places connected to days/dates
-const placesCount = db.prepare('SELECT COUNT(*) as count FROM places').get().count;
-if (placesCount === 0) {
-  const insertPlace = db.prepare('INSERT INTO places (title, date_str, maps_url, visited) VALUES (?, ?, ?, ?)');
-  insertPlace.run('Plaza Mayor', '12 Oct', 'https://maps.google.com/?q=Plaza+Mayor+Madrid', 0);
-  insertPlace.run('Parque del Retiro y Palacio de Cristal', '13 Oct', 'https://maps.google.com/?q=Parque+del+Retiro+Madrid', 0);
-  insertPlace.run('Trastevere (Cena Tradicional)', '14 Oct', 'https://maps.google.com/?q=Trastevere+Roma', 0);
-  insertPlace.run('Coliseo Romano y Foro', '15 Oct', 'https://maps.google.com/?q=Colosseo+Roma', 0);
-  insertPlace.run('Fontana di Trevi', '15 Oct', 'https://maps.google.com/?q=Fontana+di+Trevi+Roma', 0);
+} catch (e) {
+  console.error('Error sincronizando datos reales del viaje:', e);
 }
 
 // Ensure Multi-Country Bingo Items for España & Italia

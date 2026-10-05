@@ -71,6 +71,21 @@ function getAutomaticPetState({ itinerary = [], places = [], bingoData = {}, act
   return 'idle';
 }
 
+// Friendly date formatter helper: "2026-11-21" -> "Sáb, 21 Nov"
+function formatFriendlyDate(dateStr) {
+  if (!dateStr) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const d = new Date(year, month - 1, day);
+    if (!isNaN(d.getTime())) {
+      const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      return `${daysOfWeek[d.getDay()]}, ${day} ${months[d.getMonth()]}`;
+    }
+  }
+  return dateStr;
+}
+
 export default function HomeView({
   settings = {},
   activeMember,
@@ -90,14 +105,11 @@ export default function HomeView({
 
   // Find today's day or first day in itinerary
   const now = new Date();
-  const currentDayNum = now.getDate();
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   let todayDayIndex = itinerary.findIndex(d => {
     if (!d.date_str) return false;
-    const s = d.date_str.trim();
-    if (s.toLowerCase().includes('hoy')) return true;
-    const match = s.match(/\b\d{1,2}\b/);
-    return match && parseInt(match[0], 10) === currentDayNum;
+    return d.date_str === todayIso;
   });
 
   if (todayDayIndex === -1 && itinerary.length > 0) {
@@ -252,7 +264,7 @@ export default function HomeView({
               {activeDay?.city ? `Explorando ${activeDay.city}` : 'Plan de Viaje'}
             </h4>
             <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
-              {activeDay?.date_str || 'Hoy'} • {(activeDay?.places || []).length} paradas programadas
+              {formatFriendlyDate(activeDay?.date_str) || 'Hoy'} • {(activeDay?.places || []).length} paradas programadas
             </p>
           </div>
 
@@ -289,7 +301,7 @@ export default function HomeView({
                 <MapPin className="w-3 h-3" /> Siguiente Parada
               </span>
               <span className="text-[11px] font-bold text-zinc-400">
-                {activeDay?.date_str || 'Hoy'}
+                {formatFriendlyDate(activeDay?.date_str) || 'Hoy'}
               </span>
             </div>
 
@@ -348,7 +360,7 @@ export default function HomeView({
                 Próximo Traslado
               </span>
               <span className="text-[11px] font-bold text-zinc-400">
-                {nextTransit.date_str || 'Pronto'}
+                {formatFriendlyDate(nextTransit.date_str) || 'Pronto'}
               </span>
             </div>
 

@@ -27,12 +27,19 @@ import TransitCard from '../components/TransitCard';
 import TransitModal from '../components/TransitModal';
 import LodgingModal from '../components/LodgingModal';
 
-// Helper to parse dates like 2026-11-22
+// Helper to parse dates like 2026-11-22 safely without NaN
 function parseDayDetails(dateStr, dayNum = 1) {
-  if (!dateStr) {
+  const weekdaysShort = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const weekdaysFull = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const monthsFull = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+  ];
+
+  if (!dateStr || typeof dateStr !== 'string') {
     return {
       weekdayShort: 'Día',
-      weekdayFull: 'Fecha por definir',
+      weekdayFull: `Día ${dayNum}`,
       dayNumber: dayNum,
       monthName: 'noviembre',
       fullFormatted: `Día ${dayNum}`,
@@ -40,15 +47,25 @@ function parseDayDetails(dateStr, dayNum = 1) {
     };
   }
 
-  const parts = dateStr.split('-').map(Number);
-  const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+  // Handle format YYYY-MM-DD
+  let dateObj = null;
+  if (dateStr.includes('-')) {
+    const parts = dateStr.split('-').map(Number);
+    if (parts.length >= 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+      dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+  }
 
-  const weekdaysShort = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  const weekdaysFull = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const monthsFull = [
-    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
-  ];
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    return {
+      weekdayShort: 'Día',
+      weekdayFull: `Día ${dayNum}`,
+      dayNumber: dayNum,
+      monthName: 'noviembre',
+      fullFormatted: `Día ${dayNum} • ${dateStr}`,
+      isToday: false,
+    };
+  }
 
   const now = new Date();
   const isToday = (
@@ -57,12 +74,15 @@ function parseDayDetails(dateStr, dayNum = 1) {
     now.getFullYear() === dateObj.getFullYear()
   );
 
+  const dayOfWeek = dateObj.getDay();
+  const monthIdx = dateObj.getMonth();
+
   return {
-    weekdayShort: weekdaysShort[dateObj.getDay()],
-    weekdayFull: weekdaysFull[dateObj.getDay()],
-    dayNumber: dateObj.getDate(),
-    monthName: monthsFull[dateObj.getMonth()],
-    fullFormatted: `${weekdaysFull[dateObj.getDay()]} ${dateObj.getDate()} de ${monthsFull[dateObj.getMonth()]}`,
+    weekdayShort: weekdaysShort[dayOfWeek] || 'Día',
+    weekdayFull: weekdaysFull[dayOfWeek] || `Día ${dayNum}`,
+    dayNumber: dateObj.getDate() || dayNum,
+    monthName: monthsFull[monthIdx] || 'noviembre',
+    fullFormatted: `${weekdaysFull[dayOfWeek] || 'Día'} ${dateObj.getDate()} de ${monthsFull[monthIdx] || 'noviembre'}`,
     isToday,
   };
 }

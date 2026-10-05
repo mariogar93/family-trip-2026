@@ -18,18 +18,23 @@ import {
 // Format date helper: "2026-11-21" -> { dayNumber: 21, monthShort: "NOV", weekday: "Sábado", full: "21 Nov 2026" }
 function formatStayDate(dateStr) {
   if (!dateStr) return { dayNumber: '--', monthShort: '---', weekday: 'Fecha', full: 'Por definir' };
-  const parts = dateStr.split('-').map(Number);
-  if (parts.length < 3 || isNaN(parts[0])) return { dayNumber: '--', monthShort: '---', weekday: 'Fecha', full: dateStr };
+  const parts = String(dateStr).split('-').map(Number);
+  if (parts.length < 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) {
+    return { dayNumber: '--', monthShort: '---', weekday: 'Fecha', full: String(dateStr) };
+  }
   
   const d = new Date(parts[0], parts[1] - 1, parts[2]);
+  if (isNaN(d.getTime())) {
+    return { dayNumber: '--', monthShort: '---', weekday: 'Fecha', full: String(dateStr) };
+  }
   const months = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
   const weekdays = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   
   return {
     dayNumber: d.getDate(),
-    monthShort: months[d.getMonth()],
-    weekday: weekdays[d.getDay()],
-    full: `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
+    monthShort: months[d.getMonth()] || '---',
+    weekday: weekdays[d.getDay()] || 'Fecha',
+    full: `${d.getDate()} ${months[d.getMonth()] || ''} ${d.getFullYear()}`
   };
 }
 
