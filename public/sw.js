@@ -1,4 +1,4 @@
-const CACHE_NAME = 'family-trip-v2';
+const CACHE_NAME = 'family-trip-v4';
 
 self.addEventListener('install', (event) => {
   // Activate immediately without waiting
