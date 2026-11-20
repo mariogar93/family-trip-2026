@@ -142,6 +142,7 @@ db.exec(`
     amount REAL NOT NULL,
     paid_by INTEGER NOT NULL,
     split_members TEXT NOT NULL, -- JSON array of IDs: "[1,2,3]"
+    invited_members TEXT DEFAULT '[]', -- JSON array of IDs invited by payer: "[2]"
     category TEXT DEFAULT 'Comida',
     date_str TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -312,6 +313,7 @@ db.exec(`
 `);
 
 try { db.exec("ALTER TABLE lodgings ADD COLUMN airbnb_url TEXT DEFAULT ''"); } catch (e) {}
+try { db.exec("ALTER TABLE expenses ADD COLUMN invited_members TEXT DEFAULT '[]'"); } catch (e) {}
 try { db.exec("ALTER TABLE bingo_items ADD COLUMN country TEXT DEFAULT 'España'"); } catch (e) {}
 try { db.exec("ALTER TABLE bingo_items ADD COLUMN hint_category TEXT DEFAULT 'Especialidad gastronómica'"); } catch (e) {}
 try { db.exec("ALTER TABLE color_challenges ADD COLUMN country TEXT DEFAULT 'España'"); } catch (e) {}
@@ -479,62 +481,177 @@ try {
   console.error('Error sincronizando datos reales del viaje:', e);
 }
 
-// Ensure Multi-Country Bingo Items for España & Italia
-// Remove any outdated 'Francia' items and ensure España & Italia
+// ---------------------------------------------------------------------
+// SYNC ITINERARY VERSION 2026-11-20-v2
+// (San Giovanni in Laterano Nov 25, clean city names, transits & lodgings)
+// ---------------------------------------------------------------------
+try {
+  const currentItinVer = db.prepare("SELECT value FROM settings WHERE key = 'itinerary_version'").get()?.value;
+  if (currentItinVer !== '2026-11-20-v2') {
+    console.log('🔄 Sincronizando versión actualizada de Itinerario (v2026-11-20-v2)...');
+    
+    // Save any places already visited by members to preserve their completion status
+    const visitedTitles = db.prepare("SELECT title FROM places WHERE visited = 1").all().map(r => r.title);
+
+    // Clear and rebuild activities, transits, lodgings and places
+    db.prepare("DELETE FROM itinerary_activities").run();
+    db.prepare("DELETE FROM transits").run();
+    db.prepare("DELETE FROM lodgings").run();
+    db.prepare("DELETE FROM places").run();
+
+    const daysTotal = db.prepare("SELECT COUNT(*) as count FROM itinerary_days").get().count;
+    if (daysTotal === 0 || daysTotal !== REAL_DAYS.length) {
+      db.prepare("DELETE FROM itinerary_days").run();
+      const insertDay = db.prepare(`
+        INSERT INTO itinerary_days (day_number, city, city_to, is_transfer, title, date_str, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      for (const d of REAL_DAYS) {
+        insertDay.run(d.day_number, d.city, d.city_to || null, d.is_transfer || 0, d.title, d.date_str, d.notes || '');
+      }
+    } else {
+      const updateDay = db.prepare(`
+        UPDATE itinerary_days 
+        SET city = ?, city_to = ?, is_transfer = ?, title = ?, date_str = ?, notes = ?
+        WHERE day_number = ?
+      `);
+      for (const d of REAL_DAYS) {
+        updateDay.run(d.city, d.city_to || null, d.is_transfer || 0, d.title, d.date_str, d.notes || '', d.day_number);
+      }
+    }
+
+    const allDays = db.prepare("SELECT id, day_number FROM itinerary_days").all();
+    const dayMap = {};
+    allDays.forEach(d => { dayMap[d.day_number] = d.id; });
+
+    // Activities
+    const insertAct = db.prepare(`
+      INSERT INTO itinerary_activities (day_id, time_str, title, location, notes, status)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    for (const a of REAL_ACTIVITIES) {
+      const targetDayId = dayMap[a.day_number];
+      if (targetDayId) {
+        insertAct.run(targetDayId, a.time_str, a.title, a.location || '', a.notes || '', a.status || 'pending');
+      }
+    }
+
+    // Places (preserving visited status)
+    const insertPlace = db.prepare(`
+      INSERT INTO places (title, date_str, maps_url, visited, category, description, location, day_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const p of REAL_PLACES) {
+      const targetDayId = p.day_number ? dayMap[p.day_number] : null;
+      const wasVisited = visitedTitles.includes(p.title) ? 1 : 0;
+      insertPlace.run(p.title, p.date_str || '', p.maps_url || null, wasVisited, p.category || 'Atracción', p.description || '', p.location || '', targetDayId);
+    }
+
+    // Transits
+    const insertTransit = db.prepare(`
+      INSERT INTO transits (day_id, date_str, type, origin, origin_time, destination, destination_time, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const t of REAL_TRANSITS) {
+      const targetDayId = dayMap[t.day_number];
+      insertTransit.run(targetDayId, t.date_str, t.type, t.origin, t.origin_time, t.destination, t.destination_time, t.notes);
+    }
+
+    // Lodgings
+    const insertLodging = db.prepare(`
+      INSERT INTO lodgings (city, name, address, maps_url, check_in_date, check_in_time, check_out_date, check_out_time, door_code, wifi_name, wifi_pass, host_name, host_phone, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const l of REAL_LODGINGS) {
+      insertLodging.run(
+        l.city, l.name, l.address, l.maps_url,
+        l.check_in_date, l.check_in_time, l.check_out_date, l.check_out_time,
+        l.door_code, l.wifi_name, l.wifi_pass, l.host_name, l.host_phone, l.notes
+      );
+    }
+
+    // Set version
+    db.prepare(`
+      INSERT INTO settings (key, value) VALUES ('itinerary_version', '2026-11-20-v2')
+      ON CONFLICT(key) DO UPDATE SET value = '2026-11-20-v2'
+    `).run();
+    console.log('✅ Itinerario actualizado con éxito en la versión 2026-11-20-v2');
+  }
+} catch (err) {
+  console.error('Error al sincronizar versión de itinerario:', err);
+}
+
+// Ensure Multi-Country Bingo Items for España & Italia (22 platos auténticos por país)
 db.prepare("DELETE FROM bingo_items WHERE country = 'Francia'").run();
 
-const checkItalia = db.prepare("SELECT COUNT(*) as count FROM bingo_items WHERE country = 'Italia'").get().count;
-if (checkItalia === 0) {
-  const itemsItalia = [
-    { title: 'Pizza Margherita Napolitana', icon: '🍕', category: 'Plato Fuerte', country: 'Italia' },
-    { title: 'Pasta Carbonara Auténtica', icon: '🍝', category: 'Plato Fuerte', country: 'Italia' },
-    { title: 'Gelato Artesanal (Helado)', icon: '🍨', category: 'Postre / Dulce', country: 'Italia' },
-    { title: 'Tiramisú Tradicional', icon: '🍰', category: 'Postre / Dulce', country: 'Italia' },
-    { title: 'Espresso en Barra', icon: '☕', category: 'Bebida', country: 'Italia' },
-    { title: 'Aperol Spritz con Aceituna', icon: '🍹', category: 'Bebida', country: 'Italia' },
-    { title: 'Bruschetta al Pomodoro', icon: '🍞', category: 'Tapas / Aperitivo', country: 'Italia' },
-    { title: 'Cannoli Siciliano Crujiente', icon: '🥐', category: 'Postre / Dulce', country: 'Italia' },
-    { title: 'Focaccia con Romero', icon: '🥖', category: 'Street Food / Al paso', country: 'Italia' },
-    { title: 'Lasagna della Nonna', icon: '🥘', category: 'Plato Fuerte', country: 'Italia' },
-    { title: 'Risotto Cremoso', icon: '🍚', category: 'Plato Fuerte', country: 'Italia' },
-    { title: 'Calzone Relleno al Horno', icon: '🥟', category: 'Street Food / Al paso', country: 'Italia' },
-    { title: 'Prosciutto & Mozzarella', icon: '🥓', category: 'Tapas / Aperitivo', country: 'Italia' },
-    { title: 'Panna Cotta con Frutos', icon: '🍮', category: 'Postre / Dulce', country: 'Italia' },
-    { title: 'Chupito de Limoncello Helado', icon: '🍋', category: 'Bebida', country: 'Italia' },
-    { title: '¡Banquete en Trattoria Familiar!', icon: '🍽️', category: 'Especial', country: 'Italia' }
-  ];
+// Clean up generic/test bingo items if any
+db.prepare("DELETE FROM bingo_items WHERE title IN ('Prueba 2', 'Plato Tradicional Insignia', 'Bebida Local Típica', 'Postre o Dulce Callejero', 'Snack Raro de Supermercado', 'Fruta Exótica que nunca probaste', 'Comida en Puesto Callejero', 'Panadería Local Calientita', 'Sopa o Caldo Tradicional', 'Tapa / Bocadillo Rápido', 'Plato que alguien dudó comer', 'Desayuno Típico Completo', 'Cerveza Artesanal o Refresco Local', 'Queso o Embutido de la Región', '¡El Festín Familiar del Viaje!')").run();
 
-  const insertBingo = db.prepare('INSERT INTO bingo_items (title, icon, category, position, country) VALUES (?, ?, ?, ?, ?)');
-  itemsItalia.forEach((item, idx) => {
-    insertBingo.run(item.title, item.icon, item.category, idx, item.country);
+const REAL_BINGO_ESPANA = [
+  { title: 'Paella Valenciana Tradicional', icon: '🥘', category: 'Plato Fuerte', hint_category: 'Arroz / Plato Fuerte' },
+  { title: 'Tortilla de Patatas Jugosa', icon: '🍳', category: 'Plato Fuerte', hint_category: 'Clásico Español' },
+  { title: 'Jamón Ibérico de Bellota', icon: '🥓', category: 'Tapas / Aperitivo', hint_category: 'Embutido Curado' },
+  { title: 'Churros con Chocolate Caliente', icon: '☕', category: 'Postre / Dulce', hint_category: 'Desayuno / Dulce' },
+  { title: 'Patatas Bravas Picantitas', icon: '🥔', category: 'Tapas / Aperitivo', hint_category: 'Tapa Caliente' },
+  { title: 'Croquetas Caseras Cremosas', icon: '🧆', category: 'Tapas / Aperitivo', hint_category: 'Tapa Clásica' },
+  { title: 'Pulpo a la Gallega con Pimentón', icon: '🐙', category: 'Plato Fuerte', hint_category: 'Especialidad Marina' },
+  { title: 'Sangría o Tinto de Verano', icon: '🍷', category: 'Bebida', hint_category: 'Bebida Típica' },
+  { title: 'Gazpacho o Salmorejo Fresco', icon: '🥣', category: 'Plato Fuerte', hint_category: 'Sopa Fría Andaluza' },
+  { title: 'Bocadillo de Calamares Crujiente', icon: '🥪', category: 'Street Food / Al paso', hint_category: 'Bocata Castizo' },
+  { title: 'Crema Catalana Caramelizada', icon: '🍮', category: 'Postre / Dulce', hint_category: 'Postre Tradicional' },
+  { title: 'Queso Manchego Curado', icon: '🧀', category: 'Tapas / Aperitivo', hint_category: 'Queso Típico' },
+  { title: 'Gambas al Ajillo Burbujeantes', icon: '🍤', category: 'Tapas / Aperitivo', hint_category: 'Marisco en Cazuela' },
+  { title: 'Pimientos de Padrón Fritos', icon: '🫑', category: 'Tapas / Aperitivo', hint_category: 'Unos pican y otros no' },
+  { title: 'Pan con Tomate y Aceite', icon: '🥖', category: 'Desayuno', hint_category: 'Desayuno Mediterráneo' },
+  { title: 'Horchata Fresca con Fartons', icon: '🥛', category: 'Bebida', hint_category: 'Bebida Dulce' },
+  { title: 'Calamares a la Romana', icon: '🦑', category: 'Tapas / Aperitivo', hint_category: 'Fritura de Mar' },
+  { title: 'Pinchos de Barra o Gilda', icon: '🍢', category: 'Tapas / Aperitivo', hint_category: 'Pincho de Taberna' },
+  { title: 'Rabo de Toro o Carrillada', icon: '🥩', category: 'Plato Fuerte', hint_category: 'Guiso Tradicional' },
+  { title: 'Ensaladilla Rusa con Picos', icon: '🥗', category: 'Tapas / Aperitivo', hint_category: 'Tapa Fría' },
+  { title: 'Caña de Cerveza bien tirada', icon: '🍺', category: 'Bebida', hint_category: 'Bebida Refrescante' },
+  { title: 'Turrón Artesano o Mazapán', icon: '🍬', category: 'Postre / Dulce', hint_category: 'Dulce Navideño' }
+];
+
+const REAL_BINGO_ITALIA = [
+  { title: 'Pizza Margherita Napolitana', icon: '🍕', category: 'Plato Fuerte', hint_category: 'Pizza al Horno' },
+  { title: 'Pasta Carbonara Auténtica', icon: '🍝', category: 'Plato Fuerte', hint_category: 'Pasta Romana' },
+  { title: 'Gelato Artesanal (Helado)', icon: '🍨', category: 'Postre / Dulce', hint_category: 'Gelato Italiano' },
+  { title: 'Tiramisú Tradicional al Café', icon: '🍰', category: 'Postre / Dulce', hint_category: 'Postre Emblemático' },
+  { title: 'Espresso en Barra', icon: '☕', category: 'Bebida', hint_category: 'Café Italiano' },
+  { title: 'Aperol Spritz con Aceituna', icon: '🍹', category: 'Bebida', hint_category: 'Aperitivo Italiano' },
+  { title: 'Bruschetta al Pomodoro e Basilico', icon: '🍞', category: 'Tapas / Aperitivo', hint_category: 'Antipasto Clásico' },
+  { title: 'Cannoli Siciliano Crujiente', icon: '🥐', category: 'Postre / Dulce', hint_category: 'Dulce de Sicilia' },
+  { title: 'Focaccia Genovese con Romero', icon: '🥖', category: 'Street Food / Al paso', hint_category: 'Panadería Artesanal' },
+  { title: 'Lasagna Bolognese della Nonna', icon: '🥘', category: 'Plato Fuerte', hint_category: 'Pasta al Horno' },
+  { title: 'Risotto Cremoso ai Funghi', icon: '🍚', category: 'Plato Fuerte', hint_category: 'Arroz Italiano' },
+  { title: 'Calzone Relleno al Horno', icon: '🥟', category: 'Street Food / Al paso', hint_category: 'Street Food' },
+  { title: 'Prosciutto di Parma & Mozzarella', icon: '🥓', category: 'Tapas / Aperitivo', hint_category: 'Tabla de Antipasto' },
+  { title: 'Panna Cotta con Frutos Rojos', icon: '🍮', category: 'Postre / Dulce', hint_category: 'Postre del Norte' },
+  { title: 'Chupito de Limoncello Helado', icon: '🍋', category: 'Bebida', hint_category: 'Digestivo de Limón' },
+  { title: 'Pasta al Pesto Genovese', icon: '🌿', category: 'Plato Fuerte', hint_category: 'Pasta Fresca Verde' },
+  { title: 'Cacio e Pepe o Amatriciana', icon: '🧀', category: 'Plato Fuerte', hint_category: 'Especialidad de Roma' },
+  { title: 'Arancini di Riso Crujiente', icon: '🍙', category: 'Street Food / Al paso', hint_category: 'Fritura Callejera' },
+  { title: 'Carpaccio o Bistecca Fiorentina', icon: '🥩', category: 'Plato Fuerte', hint_category: 'Carne Tradicional' },
+  { title: 'Copa de Vino Chianti o Prosecco', icon: '🍷', category: 'Bebida', hint_category: 'Vino de la Casa' },
+  { title: 'Caprese con Mozzarella de Búfala', icon: '🍅', category: 'Tapas / Aperitivo', hint_category: 'Ensalada Fresca' },
+  { title: '¡Banquete en Trattoria Familiar!', icon: '🍽️', category: 'Especial', hint_category: 'Celebración Familiar' }
+];
+
+const checkEspanaCount = db.prepare("SELECT COUNT(*) as count FROM bingo_items WHERE country = 'España'").get().count;
+if (checkEspanaCount < 20) {
+  db.prepare("DELETE FROM bingo_items WHERE country = 'España'").run();
+  const insertBingo = db.prepare('INSERT INTO bingo_items (title, icon, category, hint_category, position, country) VALUES (?, ?, ?, ?, ?, ?)');
+  REAL_BINGO_ESPANA.forEach((item, idx) => {
+    insertBingo.run(item.title, item.icon, item.category, item.hint_category || 'Especialidad gastronómica', idx, 'España');
   });
 }
 
-// Ensure España items exist
-const checkEspana = db.prepare("SELECT COUNT(*) as count FROM bingo_items WHERE country = 'España'").get().count;
-if (checkEspana === 0) {
-  const itemsEspana = [
-    { title: 'Paella Tradicional', icon: '🥘', category: 'Plato Fuerte', country: 'España' },
-    { title: 'Tortilla de Patatas Jugosa', icon: '🍳', category: 'Plato Fuerte', country: 'España' },
-    { title: 'Jamón Ibérico al Corte', icon: '🥓', category: 'Tapas / Aperitivo', country: 'España' },
-    { title: 'Churros con Chocolate', icon: '☕', category: 'Postre / Dulce', country: 'España' },
-    { title: 'Patatas Bravas Picantitas', icon: '🥔', category: 'Tapas / Aperitivo', country: 'España' },
-    { title: 'Croquetas Caseras Cremosas', icon: '🧆', category: 'Tapas / Aperitivo', country: 'España' },
-    { title: 'Pulpo a la Gallega con Pimentón', icon: '🐙', category: 'Plato Fuerte', country: 'España' },
-    { title: 'Sangría o Tinto de Verano', icon: '🍷', category: 'Bebida', country: 'España' },
-    { title: 'Gazpacho / Salmorejo Fresco', icon: '🥣', category: 'Plato Fuerte', country: 'España' },
-    { title: 'Bocadillo de Calamares', icon: '🥪', category: 'Street Food / Al paso', country: 'España' },
-    { title: 'Crema Catalana Caramelizada', icon: '🍮', category: 'Postre / Dulce', country: 'España' },
-    { title: 'Queso Manchego Curado', icon: '🧀', category: 'Tapas / Aperitivo', country: 'España' },
-    { title: 'Turrón o Mazapán Típico', icon: '🍬', category: 'Postre / Dulce', country: 'España' },
-    { title: 'Horchata con Fartons', icon: '🥛', category: 'Bebida', country: 'España' },
-    { title: 'Pinchos de Barra', icon: '🍢', category: 'Tapas / Aperitivo', country: 'España' },
-    { title: '¡Festín de Tapas en Familia!', icon: '🍖', category: 'Especial', country: 'España' }
-  ];
-
-  const insertBingo = db.prepare('INSERT INTO bingo_items (title, icon, category, position, country) VALUES (?, ?, ?, ?, ?)');
-  itemsEspana.forEach((item, idx) => {
-    insertBingo.run(item.title, item.icon, item.category, idx, item.country);
+const checkItaliaCount = db.prepare("SELECT COUNT(*) as count FROM bingo_items WHERE country = 'Italia'").get().count;
+if (checkItaliaCount < 20) {
+  db.prepare("DELETE FROM bingo_items WHERE country = 'Italia'").run();
+  const insertBingo = db.prepare('INSERT INTO bingo_items (title, icon, category, hint_category, position, country) VALUES (?, ?, ?, ?, ?, ?)');
+  REAL_BINGO_ITALIA.forEach((item, idx) => {
+    insertBingo.run(item.title, item.icon, item.category, item.hint_category || 'Especialidad gastronómica', idx, 'Italia');
   });
 }
 

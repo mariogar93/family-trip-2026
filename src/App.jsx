@@ -10,6 +10,39 @@ import GamesView from './views/GamesView';
 import ExpensesView from './views/ExpensesView';
 import LeaderboardPetView from './views/LeaderboardPetView';
 
+// Helper to find today's index in the itinerary, or closest day if outside date range
+export function getClosestDayIndex(itineraryList) {
+  if (!itineraryList || itineraryList.length === 0) return 0;
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const todayIso = `${yyyy}-${mm}-${dd}`;
+
+  // 1. Exact match with date_str
+  const exactIdx = itineraryList.findIndex(d => d.date_str === todayIso);
+  if (exactIdx !== -1) return exactIdx;
+
+  // 2. Nearest date match
+  const nowMs = new Date(yyyy, now.getMonth(), now.getDate()).getTime();
+  let closestIdx = 0;
+  let minDiff = Infinity;
+
+  itineraryList.forEach((d, idx) => {
+    if (d.date_str && /^\d{4}-\d{2}-\d{2}$/.test(d.date_str)) {
+      const [y, m, day] = d.date_str.split('-').map(Number);
+      const targetMs = new Date(y, m - 1, day).getTime();
+      const diff = Math.abs(targetMs - nowMs);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = idx;
+      }
+    }
+  });
+
+  return closestIdx;
+}
+
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('family_theme') || 'dark');
   const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem('family_admin') === 'true');
@@ -23,9 +56,12 @@ export default function App() {
   );
   const [activeTab, setActiveTab] = useState('home');
   const [activeGameSubTab, setActiveGameSubTab] = useState('missions');
-  const [selectedDayIndex, setSelectedDayIndex] = useState(1); // Default to arrival Nov 22 (index 1)
+  const [selectedDayIndex, setSelectedDayIndex] = useState(null);
 
   const handleNavigateTab = (tab, subTab = null) => {
+    if (tab === 'itinerary' && selectedDayIndex === null) {
+      setSelectedDayIndex(getClosestDayIndex(itinerary));
+    }
     setActiveTab(tab);
     if (tab === 'games' && subTab) {
       setActiveGameSubTab(subTab);
@@ -126,6 +162,9 @@ export default function App() {
       setMissions(resMissions.missions || []);
       setCompletedMissions(resMissions.completed || []);
       setPhotoFeed(resFeed || []);
+
+      const closestDay = getClosestDayIndex(resItinerary);
+      setSelectedDayIndex(prev => (prev !== null && prev !== undefined ? prev : closestDay));
 
       // If active member was saved but not found in members, clear
       if (activeMemberId && !resMembers.some(m => String(m.id) === String(activeMemberId))) {
@@ -564,6 +603,8 @@ export default function App() {
               colorChallenges={colorChallenges}
               onSubmitColorPhoto={handleSubmitColorPhoto}
               selectedDayIndex={selectedDayIndex}
+              itinerary={itinerary}
+              todayDayNumber={getClosestDayIndex(itinerary) + 1}
             />
           )}
 
@@ -594,7 +635,7 @@ export default function App() {
         {/* Modern Floating Bottom Navigation Dock */}
         <Navigation
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={(tab) => handleNavigateTab(tab)}
         />
       </div>
     </AuthGate>

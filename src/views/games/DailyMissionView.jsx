@@ -6,9 +6,12 @@ import confetti from 'canvas-confetti';
 export default function DailyMissionView({
   activeMember,
   isAdmin = false,
-  selectedDayNumber = 1
+  todayDayNumber = 1,
+  selectedDayNumber,
+  itinerary = []
 }) {
-  const [dayNumber, setDayNumber] = useState(selectedDayNumber);
+  const effectiveToday = todayDayNumber || selectedDayNumber || 1;
+  const [dayNumber, setDayNumber] = useState(effectiveToday);
   const [missionData, setMissionData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,9 +29,9 @@ export default function DailyMissionView({
 
   useEffect(() => {
     if (!isAdmin) {
-      setDayNumber(selectedDayNumber);
+      setDayNumber(effectiveToday);
     }
-  }, [selectedDayNumber, isAdmin]);
+  }, [effectiveToday, isAdmin]);
 
   const fetchMission = async (day) => {
     setLoading(true);
@@ -208,24 +211,44 @@ export default function DailyMissionView({
             </div>
           </>
         ) : (
-          /* Normal user mode: locked strictly to today's mission */
+          /* Normal user mode: can revisit past days, but blocked from future days */
           <div className="w-full flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#ff3b68] block">
-                Reto Familiar de Hoy
+            <button
+              onClick={() => setDayNumber(prev => Math.max(1, prev - 1))}
+              disabled={dayNumber <= 1}
+              className="p-1.5 rounded-xl bg-zinc-800/60 dark:bg-zinc-800/60 light:bg-zinc-100 hover:bg-zinc-700 light:hover:bg-zinc-200 disabled:opacity-30 text-zinc-300 dark:text-zinc-300 light:text-zinc-700 cursor-pointer"
+              title="Día anterior"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+
+            <div className="text-center">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#ff3b68] flex items-center justify-center gap-1">
+                {dayNumber === effectiveToday ? '⭐ Misión de Hoy' : dayNumber < effectiveToday ? '📜 Misión Pasada' : '🔒 Misión Futura'}
               </span>
               <h3 className="text-xs font-black text-zinc-900 dark:text-zinc-100">
-                Día {selectedDayNumber} del Viaje
+                Día {dayNumber} del Viaje
               </h3>
             </div>
 
-            <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-xl border ${
-              state.status === 'sealed'
-                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
-                : 'bg-[#ff3b68]/10 text-[#ff3b68] border-[#ff3b68]/30 shadow-sm'
-            }`}>
-              {state.status === 'sealed' ? '🔒 Sellada' : '✨ En curso'}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setDayNumber(prev => Math.min(effectiveToday, prev + 1))}
+                disabled={dayNumber >= effectiveToday}
+                className="p-1.5 rounded-xl bg-zinc-800/60 dark:bg-zinc-800/60 light:bg-zinc-100 hover:bg-zinc-700 light:hover:bg-zinc-200 disabled:opacity-30 text-zinc-300 dark:text-zinc-300 light:text-zinc-700 cursor-pointer"
+                title={dayNumber >= effectiveToday ? "Misiones futuras bloqueadas" : "Día siguiente"}
+              >
+                {dayNumber >= effectiveToday ? <Lock className="w-3.5 h-3.5 text-zinc-500" /> : <ArrowRight className="w-4 h-4" />}
+              </button>
+
+              <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-xl border ${
+                state.status === 'sealed'
+                  ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
+                  : 'bg-[#ff3b68]/10 text-[#ff3b68] border-[#ff3b68]/30 shadow-sm'
+              }`}>
+                {state.status === 'sealed' ? '🔒' : '✨'}
+              </span>
+            </div>
           </div>
         )}
       </div>
@@ -234,6 +257,28 @@ export default function DailyMissionView({
         <div className="p-12 text-center text-xs text-zinc-500 animate-pulse">
           Cargando sobre de la misión... 📜
         </div>
+      ) : !isAdmin && dayNumber > effectiveToday ? (
+        <motion.div
+          initial={{ scale: 0.96, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="p-8 rounded-3xl bg-zinc-950/80 dark:bg-zinc-950/80 light:bg-white border-2 border-dashed border-zinc-700 dark:border-zinc-800 light:border-zinc-300 text-center space-y-3 shadow-lg"
+        >
+          <div className="w-16 h-16 mx-auto rounded-full bg-zinc-800/80 dark:bg-zinc-800/80 light:bg-zinc-100 flex items-center justify-center text-3xl shadow-inner">
+            🔒
+          </div>
+          <h2 className="text-base font-black text-zinc-100 dark:text-zinc-100 light:text-zinc-900">
+            Misión Futura Bloqueada
+          </h2>
+          <p className="text-xs text-zinc-400 dark:text-zinc-400 light:text-zinc-600 max-w-xs mx-auto leading-relaxed">
+            Esta misión secreta corresponde al Día {dayNumber} del viaje y aún no ha comenzado. ¡Se desbloqueará automáticamente cuando llegue su fecha!
+          </p>
+          <button
+            onClick={() => setDayNumber(effectiveToday)}
+            className="mt-2 px-4 py-2 rounded-xl bg-[#ff3b68] hover:bg-[#e02854] text-white text-xs font-bold shadow-md cursor-pointer active:scale-95"
+          >
+            Volver a la Misión de Hoy (Día {effectiveToday})
+          </button>
+        </motion.div>
       ) : (
         <>
           {/* WAX SEALED ENVELOPE (State: sealed) */}
@@ -483,9 +528,9 @@ export default function DailyMissionView({
               ) : (
                 <label className="block p-5 rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-[#ff3b68] bg-zinc-50 dark:bg-zinc-900/60 text-center cursor-pointer transition-colors">
                   <Camera className="w-8 h-8 mx-auto text-[#ff3b68] mb-1" />
-                  <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">Tomar o subir foto</span>
-                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Abre la cámara de tu teléfono</span>
-                  <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
+                  <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">Tomar foto o elegir de la galería</span>
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Cámara o carrete de tu teléfono</span>
+                  <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                 </label>
               )}
 

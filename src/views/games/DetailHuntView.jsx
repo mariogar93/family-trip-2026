@@ -338,9 +338,9 @@ export default function DetailHuntView({ activeMember, isAdmin = false }) {
                   ) : (
                     <label className="block p-5 rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-[#ff3b68] bg-zinc-50 dark:bg-zinc-900/60 text-center cursor-pointer transition-colors">
                       <Camera className="w-8 h-8 mx-auto text-[#ff3b68] mb-1" />
-                      <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">Fotografiar detalle</span>
-                      <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Haz clic aquí para abrir cámara</span>
-                      <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
+                      <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">Tomar foto o elegir de la galería</span>
+                      <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Cámara o carrete de fotos</span>
+                      <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                     </label>
                   )}
 
@@ -490,8 +490,8 @@ export default function DetailHuntView({ activeMember, isAdmin = false }) {
                   ) : (
                     <label className="block p-5 rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-[#ff3b68] bg-zinc-50 dark:bg-zinc-900/60 text-center cursor-pointer transition-colors">
                       <Camera className="w-8 h-8 mx-auto text-[#ff3b68] mb-1" />
-                      <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">Tomar foto del letrero</span>
-                      <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
+                      <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">Tomar foto o elegir de la galería</span>
+                      <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                     </label>
                   )}
 

@@ -148,6 +148,7 @@ export default function ItineraryView({
   const [bucketCity, setBucketCity] = useState('Madrid');
   const [bucketMapsUrl, setBucketMapsUrl] = useState('');
   const [assigningPlaceId, setAssigningPlaceId] = useState(null);
+  const [selectedPlaceDetails, setSelectedPlaceDetails] = useState(null);
 
   const unassignedPlaces = (places || []).filter(p => !p.day_id && (!p.date_str || p.date_str === ''));
   const filteredBucketPlaces = unassignedPlaces.filter(p => {
@@ -201,6 +202,72 @@ export default function ItineraryView({
       colors: ['#f59e0b', '#06b6d4', '#ffffff']
     });
   };
+
+  // Edit place state
+  const [editingPlace, setEditingPlace] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editDateStr, setEditDateStr] = useState('');
+  const [editMapsUrl, setEditMapsUrl] = useState('');
+  const [savingEditPlace, setSavingEditPlace] = useState(false);
+
+  const handleOpenEditPlace = (place) => {
+    setEditingPlace(place);
+    setEditTitle(place.title || '');
+    setEditLocation(place.location || '');
+    setEditDateStr(place.date_str || '');
+    setEditMapsUrl(place.maps_url || '');
+  };
+
+  const handleSaveEditPlace = async (e) => {
+    e.preventDefault();
+    if (!editingPlace || !editTitle.trim() || !onUpdatePlace) return;
+    setSavingEditPlace(true);
+    try {
+      const targetDay = itinerary.find(d => d.date_str === editDateStr);
+      await onUpdatePlace(editingPlace.id, {
+        title: editTitle.trim(),
+        location: editLocation.trim(),
+        date_str: editDateStr.trim(),
+        day_id: targetDay ? targetDay.id : (editDateStr ? editingPlace.day_id : null),
+        maps_url: editMapsUrl.trim() || null
+      });
+      setEditingPlace(null);
+      confetti({
+        particleCount: 30,
+        spread: 50,
+        origin: { y: 0.7 },
+        colors: ['#ff3b68', '#10b981', '#3b82f6']
+      });
+    } catch (err) {
+      alert('Error al actualizar lugar');
+    } finally {
+      setSavingEditPlace(false);
+    }
+  };
+
+  // Calculate today or closest day index
+  const todayIndex = (() => {
+    if (!itinerary || !itinerary.length) return 0;
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const todayIso = `${yyyy}-${mm}-${dd}`;
+    const exact = itinerary.findIndex(d => d.date_str === todayIso);
+    if (exact !== -1) return exact;
+    const nowMs = new Date(yyyy, now.getMonth(), now.getDate()).getTime();
+    let closest = 0;
+    let minDiff = Infinity;
+    itinerary.forEach((d, i) => {
+      if (d.date_str && /^\d{4}-\d{2}-\d{2}$/.test(d.date_str)) {
+        const [y, m, day] = d.date_str.split('-').map(Number);
+        const diff = Math.abs(new Date(y, m - 1, day).getTime() - nowMs);
+        if (diff < minDiff) { minDiff = diff; closest = i; }
+      }
+    });
+    return closest;
+  })();
 
   // Form for adding a place or plan to this day
   const [newItemType, setNewItemType] = useState('place'); // 'place' | 'act'
@@ -306,7 +373,9 @@ export default function ItineraryView({
   };
 
   const activities = currentDay?.activities || [];
-  const dayPlaces = currentDay?.places || [];
+  const dayPlaces = (places && places.length > 0)
+    ? places.filter(p => (currentDay?.id && p.day_id === currentDay.id) || (currentDay?.date_str && p.date_str === currentDay.date_str))
+    : (currentDay?.places || []);
   
   // Transits for this day
   const dayTransits = (transits || []).filter(t => {
@@ -332,14 +401,26 @@ export default function ItineraryView({
   return (
     <div className="pb-36 pt-0 space-y-4 relative">
       
-      {/* 1. SUBHEADER: 14 DÍAS EN 3 CIUDADES + TOGGLE DÍA / TODO / BUCKET LIST */}
+      {/* 1. SUBHEADER: BOTÓN HOY + TOGGLE DÍA / TODO / BUCKET LIST */}
       <div className="flex items-center justify-between gap-2 px-1 pt-1">
-        <span className="text-xs font-black tracking-wider uppercase text-zinc-400 dark:text-zinc-400 light:text-zinc-600 truncate">
-          14 DÍAS EN 3 CIUDADES
-        </span>
+        <button
+          onClick={() => {
+            setDayIndex(todayIndex);
+            setViewMode('single');
+          }}
+          className={`h-9 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 border ${
+            safeIndex === todayIndex && viewMode === 'single'
+              ? 'bg-[#ff3b68] text-white border-[#ff3b68] shadow-md shadow-[#ff3b68]/25 font-black'
+              : 'bg-[#151926] dark:bg-[#151926] light:bg-white text-zinc-300 dark:text-zinc-300 light:text-zinc-700 hover:text-white dark:hover:text-white light:hover:text-zinc-950 border-[#21283b] dark:border-[#21283b] light:border-zinc-300 hover:border-[#ff3b68]/50'
+          }`}
+          title="Centrar en la fecha actual o más cercana"
+        >
+          <Calendar className="w-3.5 h-3.5 text-[#ff3b68]" />
+          <span>Hoy</span>
+        </button>
 
         {/* Switcher: Día / Todo / Bucket List */}
-        <div className="flex p-0.5 rounded-xl bg-[#151926] dark:bg-[#151926] light:bg-zinc-200 border border-[#21283b] dark:border-[#21283b] light:border-zinc-300 text-xs font-bold shadow-sm flex-shrink-0">
+        <div className="flex h-9 p-0.5 rounded-xl bg-[#151926] dark:bg-[#151926] light:bg-zinc-200 border border-[#21283b] dark:border-[#21283b] light:border-zinc-300 text-xs font-bold shadow-sm flex-shrink-0 items-center">
           <button
             onClick={() => setViewMode('single')}
             className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
@@ -405,6 +486,15 @@ export default function ItineraryView({
                     : 'bg-[#151926] dark:bg-[#151926] light:bg-white text-zinc-300 dark:text-zinc-300 light:text-zinc-700 border border-[#21283b] dark:border-[#21283b] light:border-zinc-200 hover:border-zinc-500'
                 }`}
               >
+                {/* Hoy indicator pill */}
+                {idx === todayIndex && (
+                  <span className={`absolute -top-1.5 px-1.5 py-0.2 rounded-full text-[8px] font-black uppercase tracking-wider shadow-sm ${
+                    isSelected ? 'bg-white text-[#ff3b68]' : 'bg-[#ff3b68] text-white'
+                  }`}>
+                    Hoy
+                  </span>
+                )}
+
                 {/* Weekday abbreviation (Dom, Lun, Mar...) */}
                 <span className={`text-[11px] font-bold uppercase tracking-tight ${
                   isSelected ? 'text-white' : 'text-zinc-400 dark:text-zinc-400 light:text-zinc-500'
@@ -592,9 +682,13 @@ export default function ItineraryView({
                         {isDone && <Check className="w-4 h-4 stroke-[3]" />}
                       </button>
 
-                      {/* Title & Location */}
-                      <div className="flex-1 min-w-0">
-                        <h4 className={`text-[15px] sm:text-base font-bold truncate leading-tight ${
+                      {/* Title & Location - Clickable for details modal */}
+                      <div 
+                        onClick={() => setSelectedPlaceDetails(place)}
+                        className="flex-1 min-w-0 cursor-pointer group"
+                        title="Ver detalles completos del lugar"
+                      >
+                        <h4 className={`text-[15px] sm:text-base font-bold truncate leading-tight group-hover:text-[#ff3b68] transition-colors ${
                           isDone ? 'line-through text-zinc-500 dark:text-zinc-500 light:text-zinc-400' : 'text-white dark:text-white light:text-zinc-900'
                         }`}>
                           {place.title}
@@ -606,12 +700,21 @@ export default function ItineraryView({
                         )}
                       </div>
 
-                      {/* Right: Maps Link, Move to Bucket & Delete */}
+                      {/* Right: Edit, Maps Link, Move to Bucket & Delete */}
                       <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {onUpdatePlace && (
+                        {isAdmin && onUpdatePlace && (
+                          <button
+                            onClick={() => handleOpenEditPlace(place)}
+                            className="w-9 h-9 rounded-xl bg-[#171e2c] dark:bg-[#171e2c] light:bg-zinc-100 border border-[#263246] dark:border-[#263246] light:border-zinc-300 text-zinc-400 dark:text-zinc-400 light:text-zinc-700 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-[#20293c] flex items-center justify-center transition-all cursor-pointer shadow-sm"
+                            title="Editar lugar"
+                          >
+                            <Pencil className="w-4 h-4 stroke-[2]" />
+                          </button>
+                        )}
+                        {isAdmin && onUpdatePlace && (
                           <button
                             onClick={() => handleUnassignToBucket(place.id)}
-                            className="w-9 h-9 rounded-xl bg-[#171e2c] dark:bg-[#171e2c] light:bg-zinc-100 border border-[#263246] dark:border-[#263246] light:border-zinc-200 text-zinc-400 hover:text-amber-400 hover:bg-[#20293c] flex items-center justify-center transition-all cursor-pointer shadow-sm"
+                            className="w-9 h-9 rounded-xl bg-[#171e2c] dark:bg-[#171e2c] light:bg-zinc-100 border border-[#263246] dark:border-[#263246] light:border-zinc-300 text-zinc-400 dark:text-zinc-400 light:text-zinc-700 hover:text-amber-500 hover:bg-zinc-200 dark:hover:bg-[#20293c] flex items-center justify-center transition-all cursor-pointer shadow-sm"
                             title="Mover a Bucket List (sin fecha fija)"
                           >
                             <Bookmark className="w-4 h-4 stroke-[2]" />
@@ -621,18 +724,20 @@ export default function ItineraryView({
                           href={mapUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="w-9 h-9 rounded-xl bg-[#171e2c] dark:bg-[#171e2c] light:bg-zinc-100 border border-[#263246] dark:border-[#263246] light:border-zinc-200 text-[#ff3b68] hover:bg-[#ff3b68] hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-sm"
+                          className="w-9 h-9 rounded-xl bg-[#171e2c] dark:bg-[#171e2c] light:bg-zinc-100 border border-[#263246] dark:border-[#263246] light:border-zinc-300 text-[#ff3b68] hover:bg-[#ff3b68] hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-sm"
                           title="Abrir en Google Maps"
                         >
                           <ExternalLink className="w-4 h-4 stroke-[2.5]" />
                         </a>
-                        <button
-                          onClick={() => onDeletePlace && onDeletePlace(place.id)}
-                          className="p-2 text-zinc-400 dark:text-zinc-500 light:text-zinc-400 hover:text-rose-500 transition-colors cursor-pointer"
-                          title="Eliminar lugar"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => onDeletePlace && onDeletePlace(place.id)}
+                            className="p-2 text-zinc-400 dark:text-zinc-500 light:text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
+                            title="Eliminar lugar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -712,16 +817,18 @@ export default function ItineraryView({
                         )}
                       </div>
 
-                      {/* Right: Only Delete, compact icon */}
-                      <div className="flex items-center flex-shrink-0">
-                        <button
-                          onClick={() => onDeleteActivity && onDeleteActivity(act.id)}
-                          className="p-1.5 text-zinc-400 dark:text-zinc-500 light:text-zinc-400 hover:text-rose-500 transition-colors cursor-pointer"
-                          title="Eliminar nota"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      {/* Right: Only Delete, visible only for Admin */}
+                      {isAdmin && (
+                        <div className="flex items-center flex-shrink-0">
+                          <button
+                            onClick={() => onDeleteActivity && onDeleteActivity(act.id)}
+                            className="p-1.5 text-zinc-400 dark:text-zinc-500 light:text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                            title="Eliminar nota"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -904,9 +1011,13 @@ export default function ItineraryView({
                         {isDone && <Check className="w-4 h-4 stroke-[3]" />}
                       </button>
 
-                      {/* Title & Location */}
-                      <div className="flex-1 min-w-0">
-                        <h4 className={`text-[15px] font-bold truncate leading-tight ${
+                      {/* Title & Location - Clickable for details */}
+                      <div 
+                        onClick={() => setSelectedPlaceDetails(place)}
+                        className="flex-1 min-w-0 cursor-pointer group"
+                        title="Ver detalles completos del lugar"
+                      >
+                        <h4 className={`text-[15px] font-bold truncate leading-tight group-hover:text-[#ff3b68] transition-colors ${
                           isDone ? 'line-through text-zinc-500 dark:text-zinc-500 light:text-zinc-400' : 'text-white dark:text-white light:text-zinc-900'
                         }`}>
                           {place.title}
@@ -924,13 +1035,22 @@ export default function ItineraryView({
                         </div>
                       </div>
 
-                      {/* Maps link & Delete */}
+                      {/* Edit, Maps link & Delete */}
                       <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {isAdmin && onUpdatePlace && (
+                          <button
+                            onClick={() => handleOpenEditPlace(place)}
+                            className="w-9 h-9 rounded-xl bg-[#171e2c] dark:bg-[#171e2c] light:bg-zinc-100 border border-[#263246] dark:border-[#263246] light:border-zinc-300 text-zinc-400 dark:text-zinc-400 light:text-zinc-700 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-[#20293c] flex items-center justify-center transition-all cursor-pointer shadow-sm"
+                            title="Editar lugar"
+                          >
+                            <Pencil className="w-4 h-4 stroke-[2]" />
+                          </button>
+                        )}
                         <a
                           href={mapUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="w-9 h-9 rounded-xl bg-[#171e2c] dark:bg-[#171e2c] light:bg-zinc-100 border border-[#263246] dark:border-[#263246] light:border-zinc-200 text-[#ff3b68] hover:bg-[#ff3b68] hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-sm"
+                          className="w-9 h-9 rounded-xl bg-[#171e2c] dark:bg-[#171e2c] light:bg-zinc-100 border border-[#263246] dark:border-[#263246] light:border-zinc-300 text-[#ff3b68] hover:bg-[#ff3b68] hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-sm"
                           title="Abrir en Google Maps"
                         >
                           <ExternalLink className="w-4 h-4 stroke-[2.5]" />
@@ -938,7 +1058,7 @@ export default function ItineraryView({
                         {isAdmin && (
                           <button
                             onClick={() => onDeletePlace && onDeletePlace(place.id)}
-                            className="p-2 text-zinc-400 dark:text-zinc-500 light:text-zinc-400 hover:text-rose-500 transition-colors cursor-pointer"
+                            className="p-2 text-zinc-400 dark:text-zinc-500 light:text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
                             title="Eliminar lugar"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1311,6 +1431,205 @@ export default function ItineraryView({
           setActiveLodgingForModal(null);
         }}
       />
+
+      {/* 9. MODAL: EDITAR LUGAR */}
+      {editingPlace && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-[#131722] dark:bg-[#131722] light:bg-white rounded-3xl border border-[#ff3b68]/40 p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-white dark:text-white light:text-zinc-900 flex items-center gap-2">
+                  <Pencil className="w-4 h-4 text-[#ff3b68]" />
+                  <span>Editar Lugar</span>
+                </h3>
+                <p className="text-xs text-[#7886a0] dark:text-[#7886a0] light:text-zinc-500 mt-0.5">
+                  Modifica los datos del lugar o su fecha programada.
+                </p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setEditingPlace(null)}
+                className="w-8 h-8 rounded-full bg-[#0b0e17] dark:bg-[#0b0e17] light:bg-zinc-100 flex items-center justify-center text-[#7886a0] hover:text-white dark:hover:text-white light:hover:text-zinc-900 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditPlace} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 dark:text-zinc-300 light:text-zinc-700 mb-1">
+                  Nombre del Lugar *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Ej. Coliseo, Fontana di Trevi..."
+                  className="w-full px-3.5 py-2.5 bg-[#0b0e17] dark:bg-[#0b0e17] light:bg-zinc-50 border border-[#1e2538] dark:border-[#1e2538] light:border-zinc-300 rounded-xl text-white dark:text-white light:text-zinc-900 text-xs outline-none focus:ring-2 focus:ring-[#ff3b68]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 dark:text-zinc-300 light:text-zinc-700 mb-1">
+                  Ciudad o Ubicación
+                </label>
+                <input
+                  type="text"
+                  value={editLocation}
+                  onChange={(e) => setEditLocation(e.target.value)}
+                  placeholder="Ej. Madrid, Roma, Barcelona..."
+                  className="w-full px-3.5 py-2.5 bg-[#0b0e17] dark:bg-[#0b0e17] light:bg-zinc-50 border border-[#1e2538] dark:border-[#1e2538] light:border-zinc-300 rounded-xl text-white dark:text-white light:text-zinc-900 text-xs outline-none focus:ring-2 focus:ring-[#ff3b68]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 dark:text-zinc-300 light:text-zinc-700 mb-1">
+                  Fecha Asignada
+                </label>
+                <select
+                  value={editDateStr}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEditDateStr(val);
+                    const matchDay = itinerary.find(d => d.date_str === val);
+                    if (matchDay && matchDay.city) {
+                      setEditLocation(matchDay.city);
+                    }
+                  }}
+                  className="w-full px-3.5 py-2.5 bg-[#0b0e17] dark:bg-[#0b0e17] light:bg-zinc-50 border border-[#1e2538] dark:border-[#1e2538] light:border-zinc-300 rounded-xl text-white dark:text-white light:text-zinc-900 text-xs outline-none focus:ring-2 focus:ring-[#ff3b68]"
+                >
+                  <option value="">Sin fecha fija (Bucket List)</option>
+                  {itinerary.map((d, i) => (
+                    <option key={d.id || i} value={d.date_str}>
+                      Día {i + 1} ({d.date_str}) — {d.city || d.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 dark:text-zinc-300 light:text-zinc-700 mb-1">
+                  Enlace de Google Maps (Opcional)
+                </label>
+                <input
+                  type="url"
+                  value={editMapsUrl}
+                  onChange={(e) => setEditMapsUrl(e.target.value)}
+                  placeholder="https://maps.google.com/..."
+                  className="w-full px-3.5 py-2.5 bg-[#0b0e17] dark:bg-[#0b0e17] light:bg-zinc-50 border border-[#1e2538] dark:border-[#1e2538] light:border-zinc-300 rounded-xl text-white dark:text-white light:text-zinc-900 text-xs outline-none focus:ring-2 focus:ring-[#ff3b68]"
+                />
+              </div>
+
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingPlace(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-[#1a2130] text-zinc-300 text-xs font-bold cursor-pointer hover:bg-[#252f44]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEditPlace || !editTitle.trim()}
+                  className="flex-1 py-2.5 rounded-xl bg-[#ff3b68] hover:bg-[#ff2557] text-white text-xs font-black shadow-md shadow-[#ff3b68]/30 cursor-pointer disabled:opacity-50"
+                >
+                  {savingEditPlace ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* MODAL: DETALLES COMPLETOS DEL LUGAR */}
+      {selectedPlaceDetails && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-[#131722] dark:bg-[#131722] light:bg-white rounded-3xl border border-[#ff3b68]/40 dark:border-[#ff3b68]/40 light:border-zinc-200 p-5 shadow-2xl space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#ff3b68]/15 text-[#ff3b68] border border-[#ff3b68]/30 mb-1.5">
+                  {selectedPlaceDetails.category || 'Lugar de Interés'}
+                </span>
+                <h3 className="text-lg font-black text-white dark:text-white light:text-zinc-900 leading-snug break-words">
+                  {selectedPlaceDetails.title}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedPlaceDetails(null)}
+                className="w-8 h-8 rounded-full bg-[#0b0e17] dark:bg-[#0b0e17] light:bg-zinc-100 flex items-center justify-center text-zinc-400 hover:text-white dark:hover:text-white light:hover:text-zinc-900 cursor-pointer flex-shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 text-xs">
+              {selectedPlaceDetails.location && (
+                <div className="flex items-center gap-2 text-zinc-300 dark:text-zinc-300 light:text-zinc-700">
+                  <MapPin className="w-4 h-4 text-[#ff3b68] flex-shrink-0" />
+                  <span className="font-semibold">{selectedPlaceDetails.location}</span>
+                </div>
+              )}
+
+              {selectedPlaceDetails.date_str && (
+                <div className="flex items-center gap-2 text-zinc-400 dark:text-zinc-400 light:text-zinc-600">
+                  <Calendar className="w-4 h-4 text-[#ff3b68] flex-shrink-0" />
+                  <span>Fecha: <strong className="text-zinc-200 dark:text-zinc-200 light:text-zinc-800">{selectedPlaceDetails.date_str}</strong></span>
+                </div>
+              )}
+
+              {selectedPlaceDetails.description && (
+                <div className="p-3 rounded-2xl bg-[#0b0e17] dark:bg-[#0b0e17] light:bg-zinc-50 border border-[#1e2538] dark:border-[#1e2538] light:border-zinc-200 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-400 light:text-zinc-500">
+                    Información y Consejos
+                  </span>
+                  <p className="text-xs text-zinc-300 dark:text-zinc-300 light:text-zinc-700 leading-relaxed break-words whitespace-pre-wrap">
+                    {selectedPlaceDetails.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Visited status */}
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-[#0b0e17] dark:bg-[#0b0e17] light:bg-zinc-50 border border-[#1e2538] dark:border-[#1e2538] light:border-zinc-200">
+                <span className="text-xs font-bold text-zinc-300 dark:text-zinc-300 light:text-zinc-700">
+                  Estado:
+                </span>
+                <button
+                  onClick={async () => {
+                    await handleTogglePlace(selectedPlaceDetails);
+                    setSelectedPlaceDetails(prev => prev ? ({ ...prev, visited: !prev.visited }) : null);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                    selectedPlaceDetails.visited
+                      ? 'bg-[#ff3b68] text-white shadow-sm'
+                      : 'bg-zinc-800 dark:bg-zinc-800 light:bg-zinc-200 text-zinc-300 dark:text-zinc-300 light:text-zinc-700 hover:text-white dark:hover:text-white light:hover:text-zinc-900'
+                  }`}
+                >
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>{selectedPlaceDetails.visited ? 'Visitado' : 'Marcar como visitado'}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <a
+                href={selectedPlaceDetails.maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedPlaceDetails.title + ' ' + (selectedPlaceDetails.location || ''))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-2.5 rounded-xl bg-[#ff3b68] hover:bg-[#ff2557] text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-md shadow-[#ff3b68]/30 cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Abrir en Maps</span>
+              </a>
+              <button
+                onClick={() => setSelectedPlaceDetails(null)}
+                className="px-4 py-2.5 rounded-xl bg-[#1a2130] dark:bg-[#1a2130] light:bg-zinc-200 hover:bg-[#252f44] text-zinc-300 dark:text-zinc-300 light:text-zinc-700 text-xs font-bold cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

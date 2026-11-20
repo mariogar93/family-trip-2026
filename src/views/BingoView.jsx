@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Utensils, Camera, Check, Sparkles, X, Trophy, Plus, Crown, Medal, Award, Flame, Eye, EyeOff, Search, Edit2, Trash2, BookOpen } from 'lucide-react';
+import { Utensils, Camera, Check, Sparkles, X, Trophy, Plus, Crown, Medal, Award, Flame, Eye, EyeOff, Search, Edit2, Trash2, BookOpen, Grid3X3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
@@ -66,15 +66,15 @@ function cleanWord(w) {
 }
 
 const COMMON_SYNONYMS = {
-  calamar: ['calamares', 'bocadillo de calamares'],
-  calamares: ['calamar', 'bocadillo de calamares'],
+  calamar: ['calamares', 'bocadillo de calamares', 'calamares a la romana'],
+  calamares: ['calamar', 'bocadillo de calamares', 'calamares a la romana'],
   croqueta: ['croquetas'],
   croquetas: ['croqueta'],
   patata: ['patatas', 'bravas', 'patatas bravas'],
   patatas: ['patata', 'bravas', 'patatas bravas'],
   bravas: ['patatas bravas', 'patatas'],
   tortilla: ['tortilla espanola', 'tortilla de patatas', 'pincho de tortilla'],
-  churro: ['churros', 'chocolate'],
+  churro: ['churros', 'chocolate', 'churros con chocolate'],
   churros: ['churro', 'chocolate con churros'],
   helado: ['gelato', 'gelato artesanal'],
   gelato: ['helado', 'gelato artesanal'],
@@ -96,7 +96,29 @@ const COMMON_SYNONYMS = {
   cappuccino: ['cafe', 'capuchino'],
   capuchino: ['cafe', 'cappuccino'],
   cerveza: ['cana', 'caña'],
-  vino: ['tinto', 'sangria']
+  vino: ['tinto', 'sangria', 'prosecco', 'chianti'],
+  gamba: ['gambas', 'ajillo', 'gambas al ajillo'],
+  gambas: ['gamba', 'ajillo', 'gambas al ajillo'],
+  padron: ['pimientos', 'pimientos de padron'],
+  pimiento: ['pimientos', 'padron'],
+  pimientos: ['padron', 'pimientos de padron'],
+  pulpo: ['gallega', 'pulpo a la gallega'],
+  jamon: ['iberico', 'bellota'],
+  iberico: ['jamon', 'bellota'],
+  gazpacho: ['salmorejo'],
+  salmorejo: ['gazpacho'],
+  arancini: ['arancino', 'arroz'],
+  pesto: ['pasta al pesto'],
+  cacio: ['cacio e pepe', 'pepe'],
+  amatriciana: ['pasta amatriciana'],
+  caprese: ['mozzarella', 'albahaca'],
+  pan: ['pan con tomate', 'tomate'],
+  horchata: ['fartons'],
+  crema: ['crema catalana', 'catalana'],
+  turron: ['mazapan'],
+  mazapan: ['turron'],
+  rabo: ['toro', 'carrillada', 'rabo de toro'],
+  carrillada: ['rabo', 'toro']
 };
 
 function levenshteinDistance(a, b) {
@@ -160,6 +182,7 @@ export default function BingoView({
   const completeBingoItem = onCompleteBingoItem || onToggleBingoItem;
   const unmarkBingoItem = onUnmarkBingoItem || onToggleBingoItem;
   const [selectedCountry, setSelectedCountry] = useState('España');
+  const [bingoTab, setBingoTab] = useState('board'); // 'board' | 'list'
   const [isBlindMode, setIsBlindMode] = useState(true);
   const [guessInput, setGuessInput] = useState('');
   const [guessFeedback, setGuessFeedback] = useState(null);
@@ -200,6 +223,11 @@ export default function BingoView({
     const seed = (activeMember?.id || 1) * 31 + selectedCountry.length * 17;
     return seededShuffle(countryItems, seed).slice(0, 16);
   }, [countryItems, activeMember?.id, selectedCountry]);
+
+  // List of dishes assigned to this member's card
+  const myDishesList = useMemo(() => {
+    return [...shuffledBoard].sort((a, b) => a.title.localeCompare(b.title));
+  }, [shuffledBoard]);
 
   // Check if current user has completed an item
   const isItemCompletedByMe = (item) => {
@@ -543,54 +571,6 @@ export default function BingoView({
         )}
       </div>
 
-      {/* 3. Blind Guess Input: "¿Qué probaste hoy?" */}
-      <form onSubmit={handleTestGuess} className="space-y-1.5">
-        <div className="relative flex items-center">
-          <input
-            type="text"
-            value={guessInput}
-            onChange={(e) => setGuessInput(e.target.value)}
-            placeholder={`¿Qué probaste hoy en ${selectedCountry}? Ej: Calamares, Carbonara...`}
-            className="w-full pl-3.5 pr-24 py-2.5 bg-white dark:bg-zinc-950/90 border border-zinc-300 dark:border-zinc-800 rounded-2xl text-zinc-900 dark:text-zinc-100 text-xs font-medium outline-none focus:border-[#ff3b68] focus:ring-1 focus:ring-[#ff3b68] shadow-inner"
-          />
-          <button
-            type="submit"
-            disabled={!guessInput.trim()}
-            className="absolute right-1.5 px-3.5 py-1.5 rounded-xl bg-[#ff3b68] hover:bg-[#e02854] disabled:opacity-40 text-white text-xs font-black flex items-center gap-1 shadow-md shadow-[#ff3b68]/25 transition-all cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Probar</span>
-          </button>
-        </div>
-
-        {/* Feedback alert */}
-        <AnimatePresence>
-          {guessFeedback && (
-            <motion.div
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className={`p-2 px-3 rounded-xl text-xs font-bold flex items-center justify-between ${
-                guessFeedback.type === 'success'
-                  ? 'bg-rose-500/20 dark:bg-rose-500/20 light:bg-rose-50 text-rose-300 dark:text-rose-300 light:text-rose-800 border border-rose-500/30 light:border-rose-200'
-                  : guessFeedback.type === 'warning'
-                  ? 'bg-amber-500/20 dark:bg-amber-500/20 light:bg-amber-50 text-amber-300 dark:text-amber-300 light:text-amber-800 border border-amber-500/30 light:border-amber-200'
-                  : 'bg-blue-500/20 dark:bg-blue-500/20 light:bg-blue-50 text-blue-300 dark:text-blue-300 light:text-blue-800 border border-blue-500/30 light:border-blue-200'
-              }`}
-            >
-              <span>{guessFeedback.text}</span>
-              <button 
-                type="button" 
-                onClick={() => setGuessFeedback(null)}
-                className="text-zinc-400 hover:text-white ml-2 text-xs cursor-pointer"
-              >
-                ✕
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </form>
-
       {/* 4. Winner Banner or Challenge Header */}
       {countryChampion ? (
         <motion.div 
@@ -613,172 +593,289 @@ export default function BingoView({
         </motion.div>
       ) : null}
 
-      {/* 5. 4x4 Bingo Grid (16 Tiles) - High contrast & crystal clear */}
-      <div className="grid grid-cols-4 gap-2">
-        {shuffledBoard.map((item, index) => {
-          const isCompleted = isItemCompletedByMe(item);
-          const hasPhotos = (item.completions || []).some(c => !!c.photo_url);
+      {/* View Switcher: Cartón 4x4 vs Lista de Platos */}
+      <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+        <button
+          type="button"
+          onClick={() => setBingoTab('board')}
+          className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            bingoTab === 'board'
+              ? 'bg-[#ff3b68] text-white shadow-md font-black'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+          }`}
+        >
+          <Grid3X3 className="w-3.5 h-3.5" />
+          <span>Cartón 4x4</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setBingoTab('list')}
+          className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            bingoTab === 'list'
+              ? 'bg-[#ff3b68] text-white shadow-md font-black'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+          }`}
+        >
+          <Utensils className="w-3.5 h-3.5" />
+          <span>Lista de Platos ({myCompletedCount}/16)</span>
+        </button>
+      </div>
 
-          return (
-            <motion.button
-              key={`${item.id}-${index}`}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.94 }}
-              onClick={() => handleTileClick(item)}
-              className={`aspect-square p-2 rounded-2xl flex flex-col items-center justify-center text-center transition-all relative border-2 cursor-pointer select-none overflow-hidden ${
-                isCompleted
-                  ? 'bg-[#ff3b68] border-[#ff3b68] text-white shadow-lg shadow-[#ff3b68]/30 ring-2 ring-[#ff3b68]/40'
-                  : 'bg-white dark:bg-[#131722] border-zinc-200 dark:border-[#222a3d] hover:border-[#ff3b68] shadow-sm text-zinc-900 dark:text-zinc-100'
-              }`}
+      {/* Mode Content: 4x4 Cartón vs Lista de Platos */}
+      {bingoTab === 'board' ? (
+        <>
+          {/* 5. 4x4 Bingo Grid (16 Tiles) - High contrast & crystal clear */}
+          <div className="grid grid-cols-4 gap-2">
+            {shuffledBoard.map((item, index) => {
+              const isCompleted = isItemCompletedByMe(item);
+              const hasPhotos = (item.completions || []).some(c => !!c.photo_url);
+
+              return (
+                <motion.button
+                  key={`${item.id}-${index}`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => handleTileClick(item)}
+                  className={`aspect-square p-2 rounded-2xl flex flex-col items-center justify-center text-center transition-all relative border-2 cursor-pointer select-none overflow-hidden ${
+                    isCompleted
+                      ? 'bg-[#ff3b68] border-[#ff3b68] text-white shadow-lg shadow-[#ff3b68]/30 ring-2 ring-[#ff3b68]/40'
+                      : 'bg-white dark:bg-[#131722] border-zinc-200 dark:border-[#222a3d] hover:border-[#ff3b68] shadow-sm text-zinc-900 dark:text-zinc-100'
+                  }`}
+                >
+                  {isCompleted && (
+                    <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-white text-[#ff3b68] flex items-center justify-center shadow-md">
+                      <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    </div>
+                  )}
+
+                  {hasPhotos && (
+                    <div className="absolute bottom-1 left-1 text-[10px]">
+                      📸
+                    </div>
+                  )}
+
+                  {/* Icon */}
+                  <span className="text-3xl sm:text-4xl block">
+                    {isCompleted || !effectiveBlindMode ? (item.icon || '🍽️') : '❓'}
+                  </span>
+
+                  {/* Title / Clue */}
+                  {(isCompleted || !effectiveBlindMode) && (
+                    <span className={`text-[11px] sm:text-xs leading-tight line-clamp-2 px-0.5 mt-1 ${
+                      isCompleted 
+                        ? 'text-white font-black' 
+                        : 'text-zinc-950 dark:text-zinc-50 font-black'
+                    }`}>
+                      {item.title}
+                    </span>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] px-1 text-zinc-500">
+            <span>{isBlindMode ? 'Ubicación oculta en el cartón' : 'Posiciones visibles'}</span>
+            <button
+              type="button"
+              onClick={() => setBingoTab('list')}
+              className="text-[#ff3b68] font-bold hover:underline cursor-pointer flex items-center gap-1"
             >
-              {isCompleted && (
-                <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-white text-[#ff3b68] flex items-center justify-center shadow-md">
-                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+              <span>Ver tus 16 platos asignados ➔</span>
+            </button>
+          </div>
+        </>
+      ) : (
+        /* Full Assigned Dishes List (Visible dishes without spoiling their positions in the 4x4 card) */
+        <div className="space-y-2">
+          <div className="p-3.5 rounded-2xl bg-zinc-100 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 text-xs">
+            <h4 className="font-black text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+              <span>🍽️ Tus 16 Platos Asignados en {selectedCountry}</span>
+            </h4>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+              Estos son los platos incluidos en tu cartón de bingo. Su posición exacta en el cartón se mantiene aleatoria. ¡Búscalos en los menús, pruébalos y márcalos aquí para revelarlos en tu cartón!
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            {myDishesList.map((dish) => {
+              const isDone = isItemCompletedByMe(dish);
+              const myComp = (dish.completions || []).find(c => c.member_id === activeMember?.id);
+
+              return (
+                <div
+                  key={dish.id}
+                  className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                    isDone
+                      ? 'bg-rose-500/10 dark:bg-[#ff3b68]/10 border-[#ff3b68]/40'
+                      : 'bg-white dark:bg-zinc-950/80 border-zinc-200 dark:border-zinc-800 shadow-sm'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-2xl flex-shrink-0">{dish.icon || '🍽️'}</span>
+                    <div className="min-w-0">
+                      <h4 className={`text-xs font-bold truncate ${isDone ? 'line-through text-zinc-400 dark:text-zinc-500' : 'text-zinc-900 dark:text-zinc-100'}`}>
+                        {dish.title}
+                      </h4>
+                      <span className="text-[10px] text-zinc-500 font-medium block">
+                        {dish.hint_category || dish.category || 'Especialidad'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {isDone ? (
+                      <button
+                        type="button"
+                        onClick={() => handleTileClick(dish)}
+                        className="px-2.5 py-1.5 rounded-xl bg-[#ff3b68] text-white text-[11px] font-black flex items-center gap-1 cursor-pointer shadow-sm active:scale-95"
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>{myComp?.photo_url ? 'Foto 📸' : 'Probado'}</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await completeBingoItem(dish.id, activeMember?.id, null);
+                          confetti({
+                            particleCount: 70,
+                            spread: 70,
+                            origin: { y: 0.65 },
+                            colors: ['#ff3b68', '#f59e0b', '#10b981']
+                          });
+                          const completedDish = {
+                            ...dish,
+                            completions: [
+                              ...(dish.completions || []).filter(c => c.member_id !== activeMember?.id),
+                              { member_id: activeMember?.id, photo_url: null }
+                            ]
+                          };
+                          handleTileClick(completedDish);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-[#ff3b68] hover:text-white border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95"
+                      >
+                        <span>¡Lo probé! 🍴</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              )}
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-              {hasPhotos && (
-                <div className="absolute bottom-1 left-1 text-[10px]">
-                  📸
-                </div>
-              )}
-
-              {/* Icon */}
-              <span className="text-2xl sm:text-3xl block mb-1">
-                {isCompleted || !effectiveBlindMode ? (item.icon || '🍽️') : '❓'}
-              </span>
-
-              {/* Title / Clue - Clean text without background */}
-              {isCompleted || !effectiveBlindMode ? (
-                <span className={`text-[11px] sm:text-xs leading-tight line-clamp-2 px-0.5 ${
-                  isCompleted 
-                    ? 'text-white font-black' 
-                    : 'text-zinc-950 dark:text-zinc-50 font-black'
-                }`}>
-                  {item.title}
-                </span>
-              ) : (
-                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-tight line-clamp-2 px-0.5 leading-tight text-zinc-600 dark:text-zinc-400 bg-transparent shadow-none">
-                  {item.hint_category || item.category || 'Misterio'}
-                </span>
-              )}
-            </motion.button>
-          );
-        })}
-      </div>
-
-      <div className="text-center text-[10px] text-zinc-500">
-        {isBlindMode ? 'Modo a Ciegas activado: escribe lo que comas o toca una casilla al probarla.' : 'Cada casilla completada otorga +10 XP.'} Completa 4 en fila o diagonal para la bonificación mayor.
-      </div>
-
-      {/* Completion & Mystery Modal */}
+      {/* Completion & Dish Modal */}
       {selectedItem && (() => {
         const isItemCompleted = isItemCompletedByMe(selectedItem);
+        const isMysteryTileOnCard = !isItemCompleted && effectiveBlindMode && !selectedItem.fromList;
+
+        if (isMysteryTileOnCard) {
+          return (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+              <div className="w-full max-w-sm bg-white dark:bg-zinc-950 rounded-3xl border border-[#ff3b68]/30 p-5 shadow-2xl text-center space-y-3">
+                <div className="text-5xl">
+                  ❓
+                </div>
+                <h3 className="text-base font-black text-zinc-900 dark:text-zinc-100">
+                  Casilla Misteriosa
+                </h3>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                  Esta casilla oculta uno de tus 16 platos asignados. Puedes ver todos tus platos disponibles en la pestaña <strong>"Lista de Platos"</strong> y marcarlos cuando los pruebes para revelar su posición en este cartón.
+                </p>
+                <div className="pt-2 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedItem(null); setBingoTab('list'); }}
+                    className="w-full py-2.5 rounded-xl bg-[#ff3b68] hover:bg-[#e02854] text-white font-black text-xs shadow-md shadow-[#ff3b68]/25 cursor-pointer"
+                  >
+                    Ver Lista de Platos ➔
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedItem(null)}
+                    className="w-full py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        }
 
         return (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
             <div className="w-full max-w-sm bg-white dark:bg-zinc-950 rounded-3xl border border-[#ff3b68]/30 p-5 shadow-2xl text-center">
-              {isItemCompleted ? (
-                /* === 1. COMPLETED / REVEALED TILE MODAL === */
-                <>
-                  <div className="text-4xl mb-2">
-                    {selectedItem.icon || '🍽️'}
+              <div className="text-4xl mb-2">
+                {selectedItem.icon || '🍽️'}
+              </div>
+              <h3 className="text-base font-black text-zinc-900 dark:text-zinc-100 leading-snug">
+                {selectedItem.title}
+              </h3>
+              <span className="inline-block text-[10px] font-extrabold uppercase tracking-wider text-[#ff3b68] bg-[#ff3b68]/10 px-2.5 py-0.5 rounded-full mt-1 border border-[#ff3b68]/20">
+                {selectedItem.hint_category || selectedItem.category || 'Especialidad'}
+              </span>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">
+                ¡Plato completado (+10 XP)! Puedes adjuntar o actualizar la foto familiar para el álbum de viaje.
+              </p>
+
+              <div className="mt-4">
+                {previewUrl ? (
+                  <div className="relative rounded-2xl overflow-hidden border border-[#ff3b68]/40 mb-3 max-h-44 mx-auto">
+                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => { setPhotoFile(null); setPreviewUrl(''); }}
+                      className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <h3 className="text-base font-black text-zinc-900 dark:text-zinc-100 leading-snug">
-                    {selectedItem.title}
-                  </h3>
-                  <span className="inline-block text-[10px] font-extrabold uppercase tracking-wider text-[#ff3b68] bg-[#ff3b68]/10 px-2.5 py-0.5 rounded-full mt-1 border border-[#ff3b68]/20">
-                    {selectedItem.hint_category || selectedItem.category || 'Especialidad'}
-                  </span>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">
-                    ¡Casilla completada (+10 XP)! Puedes adjuntar o actualizar la foto familiar para el álbum de viaje.
-                  </p>
+                ) : (
+                  <label className="block p-4 rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-[#ff3b68] bg-zinc-50 dark:bg-zinc-900/60 cursor-pointer mb-3 transition-colors">
+                    <Camera className="w-6 h-6 mx-auto text-[#ff3b68] mb-1" />
+                    <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">
+                      {previewUrl ? 'Cambiar foto' : 'Subir foto (cámara o galería)'}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Elige de tu galería o toma una foto</span>
+                    <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                  </label>
+                )}
+              </div>
 
-                  <div className="mt-4">
-                    {previewUrl ? (
-                      <div className="relative rounded-2xl overflow-hidden border border-[#ff3b68]/40 mb-3 max-h-44 mx-auto">
-                        <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => { setPhotoFile(null); setPreviewUrl(''); }}
-                          className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white cursor-pointer"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="block p-4 rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-[#ff3b68] bg-zinc-50 dark:bg-zinc-900/60 cursor-pointer mb-3 transition-colors">
-                        <Camera className="w-6 h-6 mx-auto text-[#ff3b68] mb-1" />
-                        <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">
-                          {previewUrl ? 'Cambiar foto' : 'Subir foto del plato (opcional)'}
-                        </span>
-                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Guárdala en el diario del viaje</span>
-                        <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
-                      </label>
-                    )}
-                  </div>
-
-                  <div className="space-y-2 mt-4">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedItem(null)}
-                        className="flex-1 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
-                      >
-                        Cerrar
-                      </button>
-                      {photoFile && (
-                        <button
-                          type="button"
-                          disabled={submitting}
-                          onClick={handleSavePhoto}
-                          className="flex-1 py-2.5 rounded-xl bg-[#ff3b68] hover:bg-[#e02854] text-white font-black text-xs shadow-md shadow-[#ff3b68]/25 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                        >
-                          <Check className="w-4 h-4" />
-                          <span>Guardar Foto</span>
-                        </button>
-                      )}
-                    </div>
-
+              <div className="space-y-2 mt-4">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedItem(null)}
+                    className="flex-1 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
+                  >
+                    Cerrar
+                  </button>
+                  {photoFile && (
                     <button
                       type="button"
                       disabled={submitting}
-                      onClick={handleUnmarkItem}
-                      className="w-full py-2.5 rounded-xl text-[11px] font-black text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer border border-rose-500/25"
+                      onClick={handleSavePhoto}
+                      className="flex-1 py-2.5 rounded-xl bg-[#ff3b68] hover:bg-[#e02854] text-white font-black text-xs shadow-md shadow-[#ff3b68]/25 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
-                      Desmarcar esta casilla
+                      <Check className="w-4 h-4" />
+                      <span>Guardar Foto</span>
                     </button>
-                  </div>
-                </>
-              ) : (
-                /* === 2. MYSTERY UNCOMPLETED MODAL (NEVER SPOILS DISH NAME) === */
-                <>
-                  <div className="text-5xl mb-3">
-                    ❓
-                  </div>
-                  <h3 className="text-base font-black text-zinc-900 dark:text-zinc-100 leading-snug">
-                    {selectedItem.hint_category || selectedItem.category || 'Misterio Gastronómico'}
-                  </h3>
-                  <span className="inline-block text-[10px] font-extrabold uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2.5 py-0.5 rounded-full mt-1.5 border border-amber-500/20">
-                    Pista Secreta
-                  </span>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2.5 leading-relaxed">
-                    ¿Qué delicia típica de {selectedCountry} se esconderá aquí? 
-                    <br /><br />
-                    Para no arruinar la sorpresa, escribe lo que pruebes en el buscador superior <strong>"¿Qué probaste hoy?"</strong> para desbloquearla (+10 XP) y agregar su foto familiar.
-                  </p>
+                  )}
+                </div>
 
-                  <div className="mt-5">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedItem(null)}
-                      className="w-full py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-xs font-black text-zinc-900 dark:text-white transition-colors cursor-pointer"
-                    >
-                      ¡A buscar en los menús!
-                    </button>
-                  </div>
-                </>
-              )}
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={handleUnmarkItem}
+                  className="w-full py-2.5 rounded-xl text-[11px] font-black text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer border border-rose-500/25"
+                >
+                  Desmarcar este plato
+                </button>
+              </div>
             </div>
           </div>
         );

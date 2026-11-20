@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, CheckCircle, Circle, Plus, ExternalLink, Calendar, Trash2, Plane } from 'lucide-react';
+import { MapPin, CheckCircle, Circle, Plus, ExternalLink, Calendar, Trash2, Plane, Pencil, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import TransitCard from '../components/TransitCard';
@@ -12,6 +12,7 @@ export default function PlacesView({
   isAdmin = false,
   onToggleVisited, 
   onAddPlace,
+  onUpdatePlace,
   onDeletePlace,
   transits = [],
   onAddTransit,
@@ -26,7 +27,42 @@ export default function PlacesView({
   const [dateStr, setDateStr] = useState('');
   const [mapsUrl, setMapsUrl] = useState('');
 
+  // Editing place state
+  const [editingPlace, setEditingPlace] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editDateStr, setEditDateStr] = useState('');
+  const [editMapsUrl, setEditMapsUrl] = useState('');
+
   const visitedCount = places.filter(p => Boolean(p.visited)).length;
+
+  const handleOpenEdit = (place) => {
+    setEditingPlace(place);
+    setEditTitle(place.title || '');
+    setEditLocation(place.location || '');
+    setEditDateStr(place.date_str || '');
+    setEditMapsUrl(place.maps_url || '');
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingPlace || !editTitle.trim() || !onUpdatePlace) return;
+    const targetDay = itinerary.find(d => d.date_str === editDateStr);
+    await onUpdatePlace(editingPlace.id, {
+      title: editTitle.trim(),
+      location: editLocation.trim(),
+      date_str: editDateStr.trim(),
+      day_id: targetDay ? targetDay.id : (editDateStr ? editingPlace.day_id : null),
+      maps_url: editMapsUrl.trim() || null
+    });
+    setEditingPlace(null);
+    confetti({
+      particleCount: 30,
+      spread: 60,
+      origin: { y: 0.7 },
+      colors: ['#ff3b68', '#10b981', '#3b82f6']
+    });
+  };
 
   const handleToggle = async (place) => {
     const isNowVisited = !place.visited;
@@ -197,6 +233,16 @@ export default function PlacesView({
                 </div>
 
                 <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {onUpdatePlace && (
+                    <button
+                      onClick={() => handleOpenEdit(place)}
+                      className="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                      title="Editar lugar"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+
                   {place.maps_url && (
                     <a
                       href={place.maps_url}
@@ -338,6 +384,119 @@ export default function PlacesView({
                   className="flex-1 py-2.5 rounded-xl text-xs font-black bg-[#ff3b68] hover:bg-[#e02854] text-white shadow-md shadow-[#ff3b68]/30 cursor-pointer"
                 >
                   Guardar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Place Modal */}
+      {editingPlace && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-white dark:bg-zinc-950 rounded-3xl border border-[#ff3b68]/40 p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                  <Pencil className="w-4 h-4 text-[#ff3b68]" />
+                  <span>Editar Lugar</span>
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  Corrige el nombre, ciudad o fecha del lugar.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingPlace(null)}
+                className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-zinc-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                  Nombre del Lugar *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl text-zinc-900 dark:text-zinc-100 text-xs outline-none focus:ring-2 focus:ring-[#ff3b68]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                  Ciudad o Ubicación
+                </label>
+                <select
+                  value={editLocation}
+                  onChange={(e) => setEditLocation(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl text-zinc-900 dark:text-zinc-100 text-xs outline-none focus:ring-2 focus:ring-[#ff3b68]"
+                >
+                  <option value="Madrid">Madrid</option>
+                  <option value="Barcelona">Barcelona</option>
+                  <option value="Roma">Roma</option>
+                  <option value="Venezia">Venezia</option>
+                  <option value="General">General / En ruta</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                  Fecha Asignada
+                </label>
+                <select
+                  value={editDateStr}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEditDateStr(val);
+                    const matchDay = itinerary.find(d => d.date_str === val);
+                    if (matchDay && matchDay.city) {
+                      setEditLocation(matchDay.city);
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl text-zinc-900 dark:text-zinc-100 text-xs outline-none focus:ring-2 focus:ring-[#ff3b68]"
+                >
+                  <option value="">Sin fecha fija</option>
+                  {itinerary.map((d, i) => (
+                    <option key={d.id || i} value={d.date_str}>
+                      {d.date_str} — {d.city || d.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                  Enlace Maps (Opcional)
+                </label>
+                <input
+                  type="url"
+                  value={editMapsUrl}
+                  onChange={(e) => setEditMapsUrl(e.target.value)}
+                  placeholder="https://maps.google.com/..."
+                  className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl text-zinc-900 dark:text-zinc-100 text-xs outline-none focus:ring-2 focus:ring-[#ff3b68]"
+                />
+              </div>
+
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingPlace(null)}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold border border-zinc-300 dark:border-zinc-700 text-zinc-500 hover:text-white cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={!editTitle.trim()}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-black bg-[#ff3b68] hover:bg-[#e02854] text-white shadow-md shadow-[#ff3b68]/30 cursor-pointer disabled:opacity-50"
+                >
+                  Guardar Cambios
                 </button>
               </div>
             </form>

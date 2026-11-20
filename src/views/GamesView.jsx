@@ -21,7 +21,9 @@ export default function GamesView({
   onClaimLine,
   colorChallenges,
   onSubmitColorPhoto,
-  selectedDayIndex = 0
+  selectedDayIndex = 0,
+  todayDayNumber = 1,
+  itinerary = []
 }) {
   const [internalSubTab, setInternalSubTab] = useState('missions');
   const activeSubTab = controlledSubTab !== undefined ? controlledSubTab : internalSubTab;
@@ -65,7 +67,7 @@ export default function GamesView({
     }
   ];
 
-  const currentDayNumber = (selectedDayIndex || 0) + 1;
+  const currentDayNumber = todayDayNumber || ((selectedDayIndex || 0) + 1);
   const activeGame = gameTabs.find(t => t.id === activeSubTab) || gameTabs[0];
 
   return (
@@ -121,7 +123,8 @@ export default function GamesView({
         <DailyMissionView
           activeMember={activeMember}
           isAdmin={isAdmin}
-          selectedDayNumber={currentDayNumber}
+          todayDayNumber={currentDayNumber}
+          itinerary={itinerary}
         />
       )}
 

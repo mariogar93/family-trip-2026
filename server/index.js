@@ -787,7 +787,7 @@ app.get('/api/expenses', (req, res) => {
   members.forEach(m => { balances[m.id] = 0; });
 
   expenses.forEach(e => {
-    const paidBy = e.paid_by;
+    const paidBy = Number(e.paid_by);
     const amount = Number(e.amount);
     let splitIds = [];
     try {
@@ -797,15 +797,30 @@ app.get('/api/expenses', (req, res) => {
     }
     if (splitIds.length === 0) splitIds = [paidBy];
 
+    let invitedIds = [];
+    try {
+      invitedIds = JSON.parse(e.invited_members || '[]');
+    } catch {
+      invitedIds = [];
+    }
+
     const share = amount / splitIds.length;
-    // Payer gets credit
+    // Payer gets credit for total amount paid
     if (balances[paidBy] !== undefined) {
       balances[paidBy] += amount;
     }
-    // Each split participant owes their share
+    // Each split participant owes their share, unless invited by the payer
     splitIds.forEach(id => {
-      if (balances[id] !== undefined) {
-        balances[id] -= share;
+      const numId = Number(id);
+      if (invitedIds.includes(numId)) {
+        // Payer absorbs the invited member's share
+        if (balances[paidBy] !== undefined) {
+          balances[paidBy] -= share;
+        }
+      } else {
+        if (balances[numId] !== undefined) {
+          balances[numId] -= share;
+        }
       }
     });
   });
@@ -854,7 +869,8 @@ app.get('/api/expenses', (req, res) => {
   res.json({
     expenses: expenses.map(e => ({
       ...e,
-      split_members: JSON.parse(e.split_members || '[]')
+      split_members: JSON.parse(e.split_members || '[]'),
+      invited_members: JSON.parse(e.invited_members || '[]')
     })),
     balances: members.map(m => ({
       ...m,
@@ -865,33 +881,35 @@ app.get('/api/expenses', (req, res) => {
 });
 
 app.post('/api/expenses', (req, res) => {
-  const { title, amount, paid_by, split_members, category, date_str } = req.body;
+  const { title, amount, paid_by, split_members, invited_members, category, date_str } = req.body;
   if (!title || !amount || !paid_by) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' });
   }
 
   const splitJson = JSON.stringify(split_members || [paid_by]);
+  const invitedJson = JSON.stringify(invited_members || []);
   const result = db.prepare(`
-    INSERT INTO expenses (title, amount, paid_by, split_members, category, date_str)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(title, Number(amount), paid_by, splitJson, category || 'General', date_str || 'Hoy');
+    INSERT INTO expenses (title, amount, paid_by, split_members, invited_members, category, date_str)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(title, Number(amount), paid_by, splitJson, invitedJson, category || 'General', date_str || 'Hoy');
 
   res.json({ id: result.lastInsertRowid });
 });
 
 app.put('/api/expenses/:id', (req, res) => {
   const { id } = req.params;
-  const { title, amount, paid_by, split_members, category, date_str } = req.body;
+  const { title, amount, paid_by, split_members, invited_members, category, date_str } = req.body;
   if (!title || !amount || !paid_by) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' });
   }
 
   const splitJson = JSON.stringify(split_members || [paid_by]);
+  const invitedJson = JSON.stringify(invited_members || []);
   db.prepare(`
     UPDATE expenses
-    SET title = ?, amount = ?, paid_by = ?, split_members = ?, category = ?, date_str = ?
+    SET title = ?, amount = ?, paid_by = ?, split_members = ?, invited_members = ?, category = ?, date_str = ?
     WHERE id = ?
-  `).run(title, Number(amount), paid_by, splitJson, category || 'General', date_str || 'Hoy', id);
+  `).run(title, Number(amount), paid_by, splitJson, invitedJson, category || 'General', date_str || 'Hoy', id);
 
   res.json({ success: true });
 });
