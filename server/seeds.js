@@ -140,7 +140,7 @@ export const REAL_DAYS = [
 
 export const REAL_TRANSITS = [
   {
-    "day_id": 7,
+    "day_number": 1,
     "date_str": "2026-11-21",
     "type": "flight",
     "origin": "SJO San José (Costa Rica)",
@@ -150,17 +150,7 @@ export const REAL_TRANSITS = [
     "notes": "Iberojet • Vuelo internacional hacia Madrid"
   },
   {
-    "day_id": 11,
-    "date_str": "2026-11-25",
-    "type": "flight",
-    "origin": "MAD Madrid-Barajas T4",
-    "origin_time": "13:05",
-    "destination": "FCO Roma Fiumicino T3",
-    "destination_time": "15:30",
-    "notes": "Iberia • Vuelo directo Madrid ➔ Roma"
-  },
-  {
-    "day_id": 14,
+    "day_number": 8,
     "date_str": "2026-11-28",
     "type": "train",
     "origin": "Roma Termini",
@@ -170,7 +160,7 @@ export const REAL_TRANSITS = [
     "notes": "Frecciarossa / Italo • Escapada a Florencia (Ida)"
   },
   {
-    "day_id": 14,
+    "day_number": 8,
     "date_str": "2026-11-28",
     "type": "train",
     "origin": "Firenze Santa Maria Novella",
@@ -180,7 +170,7 @@ export const REAL_TRANSITS = [
     "notes": "Frecciarossa / Italo • Retorno de Florencia a Roma"
   },
   {
-    "day_id": 16,
+    "day_number": 10,
     "date_str": "2026-11-30",
     "type": "flight",
     "origin": "FCO Roma Fiumicino T1",
@@ -190,7 +180,7 @@ export const REAL_TRANSITS = [
     "notes": "Vuelo directo Roma ➔ Barcelona"
   },
   {
-    "day_id": 17,
+    "day_number": 11,
     "date_str": "2026-12-01",
     "type": "train",
     "origin": "Barcelona Sants",
@@ -200,7 +190,7 @@ export const REAL_TRANSITS = [
     "notes": "Tren Regional Exprés / Larga Distancia • Escapada a Peñíscola (Ida)"
   },
   {
-    "day_id": 17,
+    "day_number": 11,
     "date_str": "2026-12-01",
     "type": "train",
     "origin": "Benicarló-Peñíscola",
@@ -210,7 +200,7 @@ export const REAL_TRANSITS = [
     "notes": "Tren Regional Exprés / Larga Distancia • Retorno a Barcelona"
   },
   {
-    "day_id": 20,
+    "day_number": 14,
     "date_str": "2026-12-04",
     "type": "train",
     "origin": "Barcelona Sants",
@@ -220,7 +210,17 @@ export const REAL_TRANSITS = [
     "notes": "AVE Alta Velocidad • Traslado matutino para el Bernabéu"
   },
   {
-    "day_id": 21,
+    "day_number": null,
+    "date_str": "2026-11-25",
+    "type": "flight",
+    "origin": "MAD Madrid-Barajas T4",
+    "origin_time": "13:05",
+    "destination": "FCO Roma Fiumicino T3",
+    "destination_time": "15:30",
+    "notes": "Iberia • Vuelo directo Madrid ➔ Roma"
+  },
+  {
+    "day_number": null,
     "date_str": "2026-12-05",
     "type": "flight",
     "origin": "MAD Madrid-Barajas T4",
@@ -233,7 +233,7 @@ export const REAL_TRANSITS = [
 
 export const REAL_PLACES = [
   {
-    "day_id": 8,
+    "day_number": 2,
     "date_str": "2026-11-22",
     "title": "Templo de Debod",
     "category": "Monumento",
@@ -242,7 +242,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Templo+de+Debod+Madrid"
   },
   {
-    "day_id": 8,
+    "day_number": 2,
     "date_str": "2026-11-22",
     "title": "Jardines de Sabatini & Gran Vía",
     "category": "Paseo",
@@ -251,7 +251,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Jardines+de+Sabatini+Madrid"
   },
   {
-    "day_id": 9,
+    "day_number": 3,
     "date_str": "2026-11-23",
     "title": "Palacio Real y Catedral de la Almudena (Exteriores)",
     "category": "Monumento",
@@ -260,7 +260,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Palacio+Real+Madrid"
   },
   {
-    "day_id": 9,
+    "day_number": 3,
     "date_str": "2026-11-23",
     "title": "Plaza de la Villa y Plaza Mayor",
     "category": "Histórico",
@@ -269,7 +269,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Plaza+Mayor+Madrid"
   },
   {
-    "day_id": 9,
+    "day_number": 3,
     "date_str": "2026-11-23",
     "title": "Puerta del Sol y Fuente de Cibeles",
     "category": "Plaza",
@@ -278,7 +278,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Puerta+del+Sol+Madrid"
   },
   {
-    "day_id": 9,
+    "day_number": 3,
     "date_str": "2026-11-23",
     "title": "Barrio de La Latina (Cava Baja)",
     "category": "Gastronomía",
@@ -287,7 +287,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Calle+Cava+Baja+Madrid"
   },
   {
-    "day_id": 10,
+    "day_number": 4,
     "date_str": "2026-11-24",
     "title": "Paseo del Prado (Exterior Museo) y Puerta de Alcalá",
     "category": "Cultura",
@@ -296,7 +296,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Puerta+de+Alcala+Madrid"
   },
   {
-    "day_id": 10,
+    "day_number": 4,
     "date_str": "2026-11-24",
     "title": "Parque de El Retiro y Palacio de Cristal",
     "category": "Parque",
@@ -305,7 +305,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Palacio+de+Cristal+Retiro"
   },
   {
-    "day_id": 10,
+    "day_number": 4,
     "date_str": "2026-11-24",
     "title": "Barrio de Las Letras y Plaza de Santa Ana",
     "category": "Paseo",
@@ -314,7 +314,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Plaza+de+Santa+Ana+Madrid"
   },
   {
-    "day_id": 11,
+    "day_number": 5,
     "date_str": "2026-11-25",
     "title": "Chocolatería San Ginés",
     "category": "Gastronomía",
@@ -323,7 +323,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Chocolateria+San+Gines+Madrid"
   },
   {
-    "day_id": 11,
+    "day_number": 5,
     "date_str": "2026-11-25",
     "title": "Archibasílica de San Giovanni in Laterano",
     "category": "Iglesia",
@@ -332,7 +332,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=San+Giovanni+in+Laterano+Roma"
   },
   {
-    "day_id": 12,
+    "day_number": 6,
     "date_str": "2026-11-26",
     "title": "Museos Vaticanos y Capilla Sixtina [08:30 AM]",
     "category": "Museo",
@@ -341,7 +341,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Musei+Vaticani+Roma"
   },
   {
-    "day_id": 12,
+    "day_number": 6,
     "date_str": "2026-11-26",
     "title": "Plaza y Basílica de San Pedro (Exteriores)",
     "category": "Monumento",
@@ -350,7 +350,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Piazza+San+Pietro+Roma"
   },
   {
-    "day_id": 12,
+    "day_number": 6,
     "date_str": "2026-11-26",
     "title": "Castillo y Puente Sant'Angelo",
     "category": "Monumento",
@@ -359,7 +359,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Castel+Sant+Angelo+Roma"
   },
   {
-    "day_id": 12,
+    "day_number": 6,
     "date_str": "2026-11-26",
     "title": "Palazzo Altemps (Exterior) y Piazza Navona",
     "category": "Plaza",
@@ -368,7 +368,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Piazza+Navona+Roma"
   },
   {
-    "day_id": 12,
+    "day_number": 6,
     "date_str": "2026-11-26",
     "title": "Panteón de Agripa [06:00 PM]",
     "category": "Monumento",
@@ -377,7 +377,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Pantheon+Roma"
   },
   {
-    "day_id": 12,
+    "day_number": 6,
     "date_str": "2026-11-26",
     "title": "Iglesia de San Ignacio de Loyola",
     "category": "Iglesia",
@@ -386,7 +386,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Sant+Ignazio+Roma"
   },
   {
-    "day_id": 13,
+    "day_number": 7,
     "date_str": "2026-11-27",
     "title": "Fontana di Trevi",
     "category": "Monumento",
@@ -395,7 +395,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Fontana+di+Trevi+Roma"
   },
   {
-    "day_id": 13,
+    "day_number": 7,
     "date_str": "2026-11-27",
     "title": "Coliseo, Foro Romano y Monte Palatino [08:30 AM]",
     "category": "Arqueológico",
@@ -404,7 +404,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Colosseo+Roma"
   },
   {
-    "day_id": 13,
+    "day_number": 7,
     "date_str": "2026-11-27",
     "title": "Rione Monti, Piazza del Campidoglio y Trastevere",
     "category": "Paseo",
@@ -413,7 +413,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Santa+Maria+in+Trastevere"
   },
   {
-    "day_id": 14,
+    "day_number": 8,
     "date_str": "2026-11-28",
     "title": "Duomo y Piazza del Duomo",
     "category": "Monumento",
@@ -422,7 +422,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Duomo+Firenze"
   },
   {
-    "day_id": 14,
+    "day_number": 8,
     "date_str": "2026-11-28",
     "title": "Piazza della Signoria y Loggia dei Lanzi",
     "category": "Plaza",
@@ -431,7 +431,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Piazza+della+Signoria+Firenze"
   },
   {
-    "day_id": 14,
+    "day_number": 8,
     "date_str": "2026-11-28",
     "title": "Ponte Vecchio y Oltrarno",
     "category": "Paseo",
@@ -440,7 +440,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Ponte+Vecchio+Firenze"
   },
   {
-    "day_id": 15,
+    "day_number": 9,
     "date_str": "2026-11-29",
     "title": "Piazza di Spagna y Palazzo Colonna (Exterior)",
     "category": "Plaza",
@@ -449,7 +449,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Piazza+di+Spagna+Roma"
   },
   {
-    "day_id": 15,
+    "day_number": 9,
     "date_str": "2026-11-29",
     "title": "Villa Borghese, Mirador del Pincio y Piazza del Popolo",
     "category": "Parque",
@@ -458,7 +458,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Terrazza+del+Pincio+Roma"
   },
   {
-    "day_id": 16,
+    "day_number": 10,
     "date_str": "2026-11-30",
     "title": "Barri Gòtic, Pont del Bisbe y Plaça Reial",
     "category": "Histórico",
@@ -467,7 +467,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Pont+del+Bisbe+Barcelona"
   },
   {
-    "day_id": 16,
+    "day_number": 10,
     "date_str": "2026-11-30",
     "title": "Barrio de El Born",
     "category": "Paseo",
@@ -476,7 +476,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=El+Born+Barcelona"
   },
   {
-    "day_id": 17,
+    "day_number": 11,
     "date_str": "2026-12-01",
     "title": "Casco Medieval, Murallas y El Bufador",
     "category": "Histórico",
@@ -485,7 +485,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Casco+Antiguo+Peniscola"
   },
   {
-    "day_id": 17,
+    "day_number": 11,
     "date_str": "2026-12-01",
     "title": "Castillo del Papa Luna (Exteriores)",
     "category": "Castillo",
@@ -494,7 +494,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Castillo+del+Papa+Luna+Peniscola"
   },
   {
-    "day_id": 18,
+    "day_number": 12,
     "date_str": "2026-12-02",
     "title": "Park Güell (Zona Monumental Interior) [09:15 AM]",
     "category": "Parque",
@@ -503,7 +503,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Park+Guell+Barcelona"
   },
   {
-    "day_id": 18,
+    "day_number": 12,
     "date_str": "2026-12-02",
     "title": "Vila de Gràcia (Plaça del Sol y Virreina)",
     "category": "Barrio Típico",
@@ -512,7 +512,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Placa+del+Sol+Gracia+Barcelona"
   },
   {
-    "day_id": 18,
+    "day_number": 12,
     "date_str": "2026-12-02",
     "title": "Passeig de Gràcia: Casa Batlló y La Pedrera (Fachadas)",
     "category": "Arquitectura",
@@ -521,7 +521,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Casa+Batllo+Barcelona"
   },
   {
-    "day_id": 19,
+    "day_number": 13,
     "date_str": "2026-12-03",
     "title": "Sagrada Família y Recinte Modernista Sant Pau (Exteriores)",
     "category": "Monumento",
@@ -530,7 +530,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Sagrada+Familia+Barcelona"
   },
   {
-    "day_id": 19,
+    "day_number": 13,
     "date_str": "2026-12-03",
     "title": "Mercat de la Boqueria y Las Ramblas",
     "category": "Gastronomía",
@@ -539,7 +539,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Mercat+de+la+Boqueria+Barcelona"
   },
   {
-    "day_id": 19,
+    "day_number": 13,
     "date_str": "2026-12-03",
     "title": "Montjuïc: Castillo (Exterior) y Anillo Olímpico",
     "category": "Mirador",
@@ -548,7 +548,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Castell+de+Montjuic+Barcelona"
   },
   {
-    "day_id": 20,
+    "day_number": 14,
     "date_str": "2026-12-04",
     "title": "Estadio Santiago Bernabéu (Tour Interior) [01:30 PM]",
     "category": "Deporte",
@@ -557,7 +557,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Estadio+Santiago+Bernabeu+Madrid"
   },
   {
-    "day_id": 20,
+    "day_number": 14,
     "date_str": "2026-12-04",
     "title": "Terraza 360° Hotel Riu Plaza España",
     "category": "Mirador",
@@ -566,7 +566,7 @@ export const REAL_PLACES = [
     "maps_url": "https://maps.google.com/?q=Hotel+Riu+Plaza+Espana+Madrid"
   },
   {
-    "day_id": 21,
+    "day_number": 15,
     "date_str": "2026-12-05",
     "title": "Calle Arenal y Puerta del Sol (Últimas Compras)",
     "category": "Compras",
@@ -578,7 +578,7 @@ export const REAL_PLACES = [
 
 export const REAL_ACTIVITIES = [
   {
-    "day_id": 7,
+    "day_number": 1,
     "time_str": "09:20 PM",
     "title": "Vuelo Internacional SJO ➔ MAD",
     "location": "Aeropuerto Juan Santamaría (SJO)",
@@ -586,7 +586,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 8,
+    "day_number": 2,
     "time_str": "02:00 PM",
     "title": "Check-in y comida ligera",
     "location": "C/ de Ferraz (Plaza de España)",
@@ -594,7 +594,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 8,
+    "day_number": 2,
     "time_str": "04:45 PM",
     "title": "Atardecer dorado en Debod (puesta de sol ~05:15 PM)",
     "location": "Templo de Debod",
@@ -602,7 +602,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 8,
+    "day_number": 2,
     "time_str": "08:30 PM",
     "title": "Cena de tapas en Gran Vía",
     "location": "Gran Vía / Plaza de España",
@@ -610,7 +610,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 9,
+    "day_number": 3,
     "time_str": "09:30 AM",
     "title": "Ruta exterior: Armería, Almudena y Plaza de Oriente",
     "location": "Palacio Real",
@@ -618,7 +618,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 9,
+    "day_number": 3,
     "time_str": "01:30 PM",
     "title": "Almuerzo: Bocadillo de calamares o tapas en San Miguel",
     "location": "Plaza Mayor",
@@ -626,7 +626,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 9,
+    "day_number": 3,
     "time_str": "07:30 PM",
     "title": "Ronda de pinchos y vinos en Cava Baja",
     "location": "La Latina",
@@ -634,7 +634,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 10,
+    "day_number": 4,
     "time_str": "10:00 AM",
     "title": "Paseo del Prado exterior y foto en Puerta de Alcalá",
     "location": "Paseo de la Luz",
@@ -642,7 +642,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 10,
+    "day_number": 4,
     "time_str": "01:30 PM",
     "title": "Almuerzo tradicional en barrio Salamanca / Retiro",
     "location": "Menéndez Pelayo",
@@ -650,7 +650,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 10,
+    "day_number": 4,
     "time_str": "04:30 PM",
     "title": "Café de media tarde en Plaza de Santa Ana",
     "location": "Barrio de Las Letras",
@@ -658,7 +658,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 11,
+    "day_number": 5,
     "time_str": "08:30 AM",
     "title": "Chocolate con churros recién hechos en San Ginés",
     "location": "Pasadizo de San Ginés",
@@ -666,7 +666,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 11,
+    "day_number": 5,
     "time_str": "10:15 AM",
     "title": "Traslado al aeropuerto Barajas T4",
     "location": "Madrid-Barajas",
@@ -674,7 +674,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 11,
+    "day_number": 5,
     "time_str": "04:30 PM",
     "title": "Llegada a Roma: Leonardo Express + Metro A a Ponte Lungo",
     "location": "San Giovanni / Ponte Lungo",
@@ -682,7 +682,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 11,
+    "day_number": 5,
     "time_str": "05:30 PM",
     "title": "Paseo por San Giovanni in Laterano y cena en trattoria local",
     "location": "Piazza di San Giovanni in Laterano",
@@ -690,7 +690,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 12,
+    "day_number": 6,
     "time_str": "08:15 AM",
     "title": "Presentarse en control de seguridad Viale Vaticano (Entrada 08:30 AM)",
     "location": "Museos Vaticanos",
@@ -698,7 +698,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 12,
+    "day_number": 6,
     "time_str": "01:00 PM",
     "title": "Almuerzo tradicional: pasta cacio e pepe o carbonara",
     "location": "Borgo Pio",
@@ -706,7 +706,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 12,
+    "day_number": 6,
     "time_str": "05:45 PM",
     "title": "Presentación en el Panteón de Agripa (Entrada 06:00 PM)",
     "location": "Piazza della Rotonda",
@@ -714,7 +714,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 13,
+    "day_number": 7,
     "time_str": "06:15 AM",
     "title": "Paseo matutino al amanecer en Trevi sin multitudes",
     "location": "Fontana di Trevi",
@@ -722,7 +722,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 13,
+    "day_number": 7,
     "time_str": "08:15 AM",
     "title": "Presentación con identificación en puerta Sperone Valadier (Entrada 08:30 AM)",
     "location": "Coliseo de Roma",
@@ -730,7 +730,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 13,
+    "day_number": 7,
     "time_str": "01:30 PM",
     "title": "Almuerzo en trattoria familiar en Rione Monti",
     "location": "Via del Boschetto",
@@ -738,7 +738,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 13,
+    "day_number": 7,
     "time_str": "07:30 PM",
     "title": "Cena típica romana en Trastevere",
     "location": "Santa Maria in Trastevere",
@@ -746,7 +746,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 14,
+    "day_number": 8,
     "time_str": "06:30 AM",
     "title": "Embarque tren alta velocidad Roma Termini ➔ Florencia (Salida 06:55 AM)",
     "location": "Roma Termini",
@@ -754,7 +754,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 14,
+    "day_number": 8,
     "time_str": "01:30 PM",
     "title": "Panino toscano en All'Antico Vinaio y paseo sobre el Arno",
     "location": "Ponte Vecchio",
@@ -762,7 +762,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 14,
+    "day_number": 8,
     "time_str": "07:45 PM",
     "title": "Embarque tren de retorno Firenze SMN ➔ Roma (Salida 08:03 PM)",
     "location": "Firenze SMN",
@@ -770,7 +770,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 15,
+    "day_number": 9,
     "time_str": "10:30 AM",
     "title": "Paseo por Plaza de España y Escalinata Trinità dei Monti",
     "location": "Piazza di Spagna",
@@ -778,7 +778,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 15,
+    "day_number": 9,
     "time_str": "03:00 PM",
     "title": "Mirador del Pincio sobre Roma y helado artesanal",
     "location": "Villa Borghese / Popolo",
@@ -786,7 +786,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 16,
+    "day_number": 10,
     "time_str": "10:00 AM",
     "title": "Check-out y traslado al aeropuerto Fiumicino (Vuelo 12:35 PM)",
     "location": "Roma FCO",
@@ -794,7 +794,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 16,
+    "day_number": 10,
     "time_str": "03:30 PM",
     "title": "Llegada y check-in en Poblenou (Metro L4 a Jaume I)",
     "location": "El Poblenou / Diagonal Mar",
@@ -802,7 +802,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 16,
+    "day_number": 10,
     "time_str": "08:00 PM",
     "title": "Tapeo en El Born: pan con tomate, embutidos y cava",
     "location": "El Xampanyet / Cal Pep",
@@ -810,7 +810,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 17,
+    "day_number": 11,
     "time_str": "07:15 AM",
     "title": "Embarque tren Barcelona Sants ➔ Benicarló-Peñíscola (Salida 07:40 AM)",
     "location": "Barcelona Sants",
@@ -818,7 +818,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 17,
+    "day_number": 11,
     "time_str": "02:00 PM",
     "title": "Almuerzo marinero de arroz caldoso o fideuà frente al mar",
     "location": "Puerto de Peñíscola",
@@ -826,7 +826,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 17,
+    "day_number": 11,
     "time_str": "06:45 PM",
     "title": "Embarque tren de retorno Benicarló ➔ Barcelona (Salida 07:03 PM)",
     "location": "Estación Benicarló",
@@ -834,7 +834,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 18,
+    "day_number": 12,
     "time_str": "09:00 AM",
     "title": "Llegada a Park Güell (Entrada Zona Monumental 09:15 AM)",
     "location": "Park Güell",
@@ -842,7 +842,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 18,
+    "day_number": 12,
     "time_str": "01:30 PM",
     "title": "Comida casera catalana: botifarra amb mongetes y escalivada",
     "location": "Vila de Gràcia",
@@ -850,7 +850,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 18,
+    "day_number": 12,
     "time_str": "04:00 PM",
     "title": "Contemplación exterior de Casa Batlló y La Pedrera",
     "location": "Passeig de Gràcia",
@@ -858,7 +858,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 19,
+    "day_number": 13,
     "time_str": "09:30 AM",
     "title": "Vistas exteriores de la Sagrada Família y paseo hacia Sant Pau",
     "location": "Avinguda Gaudí",
@@ -866,7 +866,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 19,
+    "day_number": 13,
     "time_str": "01:00 PM",
     "title": "Almuerzo de tapas en barra de La Boqueria",
     "location": "Las Ramblas",
@@ -874,7 +874,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 19,
+    "day_number": 13,
     "time_str": "04:00 PM",
     "title": "Subida en bus 150 a Montjuïc y vistas sobre el puerto",
     "location": "Montjuïc",
@@ -882,7 +882,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 20,
+    "day_number": 14,
     "time_str": "06:15 AM",
     "title": "Embarque tren AVE Barcelona Sants ➔ Madrid Atocha (Salida 06:35 AM)",
     "location": "Barcelona Sants",
@@ -890,7 +890,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 20,
+    "day_number": 14,
     "time_str": "10:30 AM",
     "title": "Llegada a Madrid Atocha, dejar equipaje y Metro L10 a Bernabéu",
     "location": "Puerta de Atocha",
@@ -898,7 +898,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 20,
+    "day_number": 14,
     "time_str": "01:15 PM",
     "title": "Presentación Tour Santiago Bernabéu (Entrada confirmada 01:30 PM)",
     "location": "Estadio Bernabéu",
@@ -906,7 +906,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 20,
+    "day_number": 14,
     "time_str": "05:30 PM",
     "title": "Pasarela de cristal y brindis al atardecer sobre Gran Vía",
     "location": "Hotel Riu Plaza España",
@@ -914,7 +914,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 21,
+    "day_number": 15,
     "time_str": "10:00 AM",
     "title": "Compras de recuerdos y turrones artesanales",
     "location": "Calle Arenal / Sol",
@@ -922,7 +922,7 @@ export const REAL_ACTIVITIES = [
     "status": "pending"
   },
   {
-    "day_id": 21,
+    "day_number": 15,
     "time_str": "01:00 PM",
     "title": "Traslado al aeropuerto Madrid-Barajas T4 (Vuelo 04:00 PM)",
     "location": "Madrid-Barajas",

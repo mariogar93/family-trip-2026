@@ -482,13 +482,13 @@ try {
 }
 
 // ---------------------------------------------------------------------
-// SYNC ITINERARY VERSION 2026-11-20-v2
-// (San Giovanni in Laterano Nov 25, clean city names, transits & lodgings)
+// SYNC ITINERARY VERSION 2026-11-20-v3
+// (San Giovanni in Laterano Nov 25, clean city names, activities, transits & lodgings)
 // ---------------------------------------------------------------------
 try {
   const currentItinVer = db.prepare("SELECT value FROM settings WHERE key = 'itinerary_version'").get()?.value;
-  if (currentItinVer !== '2026-11-20-v2') {
-    console.log('🔄 Sincronizando versión actualizada de Itinerario (v2026-11-20-v2)...');
+  if (currentItinVer !== '2026-11-20-v3') {
+    console.log('🔄 Sincronizando versión actualizada de Itinerario (v2026-11-20-v3)...');
     
     // Save any places already visited by members to preserve their completion status
     const visitedTitles = db.prepare("SELECT title FROM places WHERE visited = 1").all().map(r => r.title);
@@ -572,10 +572,10 @@ try {
 
     // Set version
     db.prepare(`
-      INSERT INTO settings (key, value) VALUES ('itinerary_version', '2026-11-20-v2')
-      ON CONFLICT(key) DO UPDATE SET value = '2026-11-20-v2'
+      INSERT INTO settings (key, value) VALUES ('itinerary_version', '2026-11-20-v3')
+      ON CONFLICT(key) DO UPDATE SET value = '2026-11-20-v3'
     `).run();
-    console.log('✅ Itinerario actualizado con éxito en la versión 2026-11-20-v2');
+    console.log('✅ Itinerario actualizado con éxito en la versión 2026-11-20-v3');
   }
 } catch (err) {
   console.error('Error al sincronizar versión de itinerario:', err);
